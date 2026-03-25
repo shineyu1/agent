@@ -9,9 +9,13 @@ coverage
 dist
 .selleros
 .claude
+.agents
+.trae
 .superpowers
 deploy-upload.tar.gz
 server.env.local
+skills-lock.json
+skills/agent-service-layer-*
 *.log
 *.tmp
 *.bak

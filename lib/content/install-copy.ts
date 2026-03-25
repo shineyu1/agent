@@ -36,12 +36,12 @@ type InstallCopy = {
 };
 
 const userCommands = [
-  "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill buyer-skill",
+  "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-user-skill",
   "npx skills add okx/onchainos-skills"
 ] as const;
 
 const providerCommands = [
-  "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill seller-skill",
+  "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill",
   "npx skills add okx/onchainos-skills"
 ] as const;
 

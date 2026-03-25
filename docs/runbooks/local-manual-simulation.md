@@ -24,7 +24,7 @@ The local environment is already prepared to the point where you can rehearse th
 ### Install Pair
 
 ```bash
-npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill seller-skill
+npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill
 npx skills add okx/onchainos-skills
 ```
 
@@ -57,7 +57,7 @@ npx skills add okx/onchainos-skills
 ### Install Pair
 
 ```bash
-npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill buyer-skill
+npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-user-skill
 npx skills add okx/onchainos-skills
 ```
 

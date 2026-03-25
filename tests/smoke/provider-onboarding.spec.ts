@@ -7,7 +7,7 @@ test("provider page now shows skill-only onboarding", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Add x402 to your API" })).toBeVisible();
   await expect(
     page.getByText(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill seller-skill"
+      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill"
     )
   ).toBeVisible();
   await expect(page.getByText("npx skills add okx/onchainos-skills")).toBeVisible();

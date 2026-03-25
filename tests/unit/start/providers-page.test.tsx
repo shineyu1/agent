@@ -21,7 +21,7 @@ describe("ProvidersPage", () => {
       "接入之后，你的 API 就能被 Agent 发现，按次调用，自动结算。两条命令，完成接入。"
     );
     expect(html).toContain(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill seller-skill"
+      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill"
     );
     expect(html).toContain("安装两个 Skill");
     expect(html).toContain("声明你的服务");
@@ -37,7 +37,7 @@ describe("ProvidersPage", () => {
       "Once live, your API is discoverable by agents, callable on demand, and settled automatically per call. Two commands to get there."
     );
     expect(html).toContain(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill seller-skill"
+      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill"
     );
     expect(html).toContain("Install both Skills");
     expect(html).toContain("Declare your service");

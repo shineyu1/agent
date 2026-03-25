@@ -20,7 +20,7 @@ describe("InstallPage", () => {
     expect(html).toContain("先装 Skill，再开始用");
     expect(html).toContain("用户安装");
     expect(html).toContain(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill buyer-skill"
+      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-user-skill"
     );
     expect(html).toContain("看服务");
     expect(html).toContain("看记录");
@@ -35,7 +35,7 @@ describe("InstallPage", () => {
     expect(html).toContain("Install the Skill, then start");
     expect(html).toContain("User install");
     expect(html).toContain(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill buyer-skill"
+      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-user-skill"
     );
     expect(html).toContain("Browse services");
     expect(html).toContain("View records");

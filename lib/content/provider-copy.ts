@@ -40,7 +40,7 @@ type ProviderCopy = {
 };
 
 const providerCommands = [
-  "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill seller-skill",
+  "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill",
   "npx skills add okx/onchainos-skills"
 ] as const;
 
