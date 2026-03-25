@@ -1,0 +1,17 @@
+node_modules
+.next
+playwright-report
+test-results
+coverage
+.env
+.env.local
+.env.*.local
+dist
+.selleros
+.claude
+.superpowers
+deploy-upload.tar.gz
+server.env.local
+*.log
+*.tmp
+*.bak
