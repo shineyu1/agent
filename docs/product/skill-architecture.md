@@ -1,242 +1,218 @@
-# SellerOS Skill Architecture
+# Agent Service x402 Skill Architecture
 
 ## Goal
 
-Define which skills SellerOS should build itself and which skills should be reused from the official OKX OnchainOS skill set.
+Define the current skill split for Agent Service x402:
 
-The guiding rule is simple:
+- which capabilities should be reused from the official OKX OnchainOS skill set
+- which product workflows should live in Agent Service x402's own skills
 
-- reuse OKX skills for chain operations, wallet actions, x402 signing, and transaction handling
-- build SellerOS skills for provider onboarding, service packaging, distribution, and seller operations
+The current architecture is intentionally simple:
 
-## What OKX Already Covers Well
+- reuse OKX skills for wallet, payment, and chain actions
+- build Agent Service x402 skills for provider onboarding and user-side service orchestration
 
-The official `okx/onchainos-skills` repository already covers the buyer-side and chain-side primitives that SellerOS can reuse.
+## Current Skill Set
+
+The project currently centers on two product skills:
+
+1. `agent-service-layer-provider-skill`
+2. `agent-service-layer-user-skill`
+
+These are the canonical skill entry points for the product.
+
+Older conceptual names such as `selleros-provider-onboarding` or `selleros-service-publish` should be treated as historical planning language, not the current implementation shape.
+
+## What OKX Skills Already Cover Well
+
+The official `okx/onchainos-skills` repository already covers the chain-side primitives that Agent Service x402 should reuse.
 
 Most relevant skills:
 
 - `okx-x402-payment`
-  - signs x402 payment authorization after a `402 Payment Required` response
-  - suitable for buyer or agent-side payment execution
-- `okx-onchain-gateway`
-  - gas estimation, simulation, broadcast, and order tracking
-  - suitable for transaction confirmation and hash tracking
+  - signs x402 payment authorization after a real `402 Payment Required` response
+  - used on the user side when a payable call actually requires payment
 - `okx-agentic-wallet`
-  - wallet auth and wallet-side actions
+  - wallet auth, wallet access, and address lookup
+- `okx-onchain-gateway`
+  - gas estimation, simulation, broadcast, and transaction tracking when needed
 - `okx-wallet-portfolio`
   - address-level balance and holdings lookup
 - `okx-security`
   - token and transaction safety checks
 
-These skills are useful building blocks, but they do not solve the provider-side workflow that makes SellerOS different.
+These are building blocks, not the product workflow itself.
 
-## What SellerOS Must Build Itself
+## What Agent Service x402 Must Build Itself
 
-SellerOS needs a dedicated skill layer for the seller journey.
+Agent Service x402 needs its own skill layer for the two product-facing workflows that OKX skills do not solve:
 
-The missing half is:
+- provider onboarding and service management
+- user-side task routing, service matching, and payment orchestration
 
-- turning an upstream API into a SellerOS service
-- configuring price, wallet, schemas, and listing state
-- choosing hosted credential mode or self-hosted relay mode
-- generating and distributing a payable endpoint
-- operating the service after launch
+That is why the project owns exactly two product skills today.
 
-## Recommended Skill Set
+---
 
-SellerOS should start with 5 skills.
+## 1. `agent-service-layer-provider-skill`
 
-### 1. `selleros-provider-onboarding`
+### Role
 
-Purpose:
+The provider-side orchestration skill.
 
-- guide a provider through creating a new service in SellerOS
+### What it is for
 
-Should trigger when:
+This skill helps a provider:
 
-- a provider wants to onboard an existing API
-- a provider wants help choosing manual mode vs OpenAPI import
-- a provider needs help configuring price, schema, wallet, or visibility
+- sign in as a seller with wallet-signature auth
+- obtain and reuse a bearer token
+- create a new provider service
+- update an existing service
+- complete high-risk provider actions with an additional signature
 
-Responsibilities:
+### What it should handle
 
-- choose onboarding mode
-- collect required service metadata
-- validate required fields before publish
-- explain listed vs unlisted distribution
-- prepare the service definition for SellerOS
+- seller auth via:
+  - `POST /api/auth/agent/challenge`
+  - `POST /api/auth/agent/verify`
+  - `GET /api/auth/session`
+- provider service management via:
+  - `POST /api/providers/services`
+  - `GET /api/providers/services`
+  - `GET /api/providers/services/{slug}`
+  - `PATCH /api/providers/services/{slug}`
+- provider action proof via:
+  - `POST /api/providers/actions/challenge`
 
-Why this matters:
+### Product behavior
 
-- this is the skill that turns “I have an API” into “I have a service listing”
+The provider skill should:
 
-### 2. `selleros-service-publish`
+- default to seller wallet-signature login plus bearer token
+- reuse the bearer token for normal provider requests
+- require a second signature for high-risk actions such as:
+  - publish service
+  - update price
+  - update payout wallet
+  - change listing state
+- start onboarding immediately after install instead of stopping at “installed successfully”
 
-Purpose:
+### Product purpose
 
-- take a drafted service and turn it into a published payable service
+This skill turns:
 
-Should trigger when:
+> “I have an API”
 
-- a provider wants to publish a new service
-- a provider wants to update price, listing state, or endpoint status
-- a provider wants to generate or regenerate the payable endpoint
+into:
 
-Responsibilities:
+> “I have an x402-compatible service that can be managed and listed.”
 
-- publish listed or unlisted services
-- generate the payable endpoint
-- generate the service card
-- verify the endpoint is reachable
-- surface the distribution options
+---
 
-Why this matters:
+## 2. `agent-service-layer-user-skill`
 
-- separates onboarding from go-live operations
+### Role
 
-### 3. `selleros-relay-setup`
+The user-side orchestration skill.
 
-Purpose:
+### What it is for
 
-- help a provider set up self-hosted relay mode with the lowest possible friction
+This skill is installed for the agent, but its behavior is directly visible to the user.
 
-Should trigger when:
+Its job is to turn a user request into the right x402 service flow.
 
-- a provider does not want to store upstream secrets in SellerOS
-- a provider wants higher security or infrastructure control
-- a provider needs help configuring a relay using OpenClaw or a simple guided flow
+It should accept:
 
-Responsibilities:
+- a natural-language task
+- a URL
+- a curl example
+- a service name or slug
+- a real `402` / payment error
 
-- explain hosted mode vs relay mode tradeoffs
-- scaffold relay configuration
-- collect relay URL and signing secret
-- verify request signing and replay protection
-- provide a fallback path to hosted credentials when setup is too complex
+### What it should handle
 
-Why this matters:
+- understand the user's task first
+- match the right service when possible
+- fall back to browsing only when the task is still unclear
+- call the payable service endpoint
+- trigger wallet login and x402 payment only when a real `HTTP 402` appears
+- replay the request after payment
+- return the result plus receipt/records guidance
 
-- this is your biggest control and security differentiator
+### Product behavior
 
-### 4. `selleros-service-debugging`
+The user skill should:
 
-Purpose:
+- behave like a capable assistant, not a menu-only bot
+- avoid leading with internal system menus
+- avoid asking for wallet login before payment is actually needed
+- expose browsing, wallet check, and service calls as support actions, not the default opening move
 
-- troubleshoot paid request failures across the full SellerOS flow
+### Product purpose
 
-Should trigger when:
+This skill turns:
 
-- a service returns 402 repeatedly
-- payment succeeds but the API result is missing
-- upstream auth fails
-- relay forwarding fails
-- paid calls are not appearing in the dashboard
+> “I need something done”
 
-Responsibilities:
+into:
 
-- check service configuration
-- inspect payment verification state
-- inspect upstream fulfillment state
-- inspect relay verification state
-- map failure to a clear remediation step
+> “The agent selected the right service, handled payment when necessary, and gave me the result.”
 
-Why this matters:
+---
 
-- once real providers use the product, operational debugging becomes a core workflow
+## Boundary Between Product Skills and OKX Skills
 
-### 5. `selleros-growth-distribution`
+The important split is:
 
-Purpose:
+### OKX skills handle
 
-- help providers use both platform-native and external distribution paths
+- wallet auth
+- x402 payment signing
+- chain operations
+- transaction mechanics
 
-Should trigger when:
+### Agent Service x402 skills handle
 
-- a provider wants to get discovered in the SellerOS directory
-- a provider wants to share the payable endpoint externally
-- a provider wants to position the service for agent consumption
+- provider workflow
+- service onboarding and management
+- user-side task routing
+- service selection
+- payment orchestration at the product level
+- result and receipt handoff
 
-Responsibilities:
+This is the cleanest current architecture.
 
-- explain listed vs unlisted strategy
-- improve service card title, description, category, and tags
-- prepare external sharing copy
-- optimize for machine readability and agent selection
+## Recommended End-to-End Flow
 
-Why this matters:
+### Provider side
 
-- SellerOS is not only a gateway; it is also a discovery layer
+1. install `agent-service-layer-provider-skill`
+2. complete seller wallet-signature login
+3. verify auth with bearer token
+4. create or update provider service
+5. publish/list with action proof when required
 
-## Phase-Based Rollout
+### User side
 
-Do not build all 5 at once.
-
-### Phase 1: Required for MVP
-
-- `selleros-provider-onboarding`
-- `selleros-relay-setup`
-
-These two are enough to support the provider integration story.
-
-### Phase 2: Required for Product Readiness
-
-- `selleros-service-publish`
-- `selleros-service-debugging`
-
-These make the system operational instead of demo-only.
-
-### Phase 3: Required for Growth
-
-- `selleros-growth-distribution`
-
-This matters once providers start caring about demand and discoverability.
-
-## How SellerOS Skills Should Work with OKX Skills
-
-SellerOS skills should orchestrate product-level workflows and hand off chain-specific steps to the official OKX skills.
-
-Recommended pairing:
-
-- `selleros-service-debugging` + `okx-x402-payment`
-  - for debugging payment-gated access
-- `selleros-service-debugging` + `okx-onchain-gateway`
-  - for transaction broadcast and tracking issues
-- `selleros-growth-distribution` + `okx-dex-market`
-  - if a provider wants to enrich token-data service copy with market context
-- `selleros-relay-setup` + `okx-agentic-wallet`
-  - if relay setup includes wallet-driven auth or account checks
-
-The important boundary is:
-
-- OKX skills handle wallet, payment, and chain mechanics
-- SellerOS skills handle provider workflow and product operations
-
-## Suggested Trigger Order
-
-For a new provider:
-
-1. `selleros-provider-onboarding`
-2. `selleros-relay-setup` if the provider chooses self-hosted mode
-3. `selleros-service-publish`
-
-For an already-published provider:
-
-1. `selleros-service-debugging` if something is broken
-2. `selleros-growth-distribution` if the service works and needs more usage
+1. install `agent-service-layer-user-skill`
+2. start from the user's task
+3. match the right service
+4. call the service
+5. if a real `HTTP 402` appears, trigger wallet + x402 payment
+6. replay the request
+7. return result and receipt
 
 ## Recommendation
 
-If the team has limited time, do not try to write every skill immediately.
+For the current product stage, do not re-expand the architecture into many product skills unless a real operational need appears.
 
-The best first move is:
+The most stable shape right now is:
 
-1. adopt the official OKX skill repo for payment and chain primitives
-2. build `selleros-provider-onboarding`
-3. build `selleros-relay-setup`
+- one provider-side skill
+- one user-side skill
+- OKX skills reused underneath for wallet and payment primitives
 
-That gives SellerOS a clear identity:
+That keeps the product understandable:
 
-- OKX handles the chain rails
-- SellerOS handles the seller workflow
-
-That is the right split for both the hackathon and the product after the hackathon.
+- OKX provides the rails
+- Agent Service x402 provides the workflow
