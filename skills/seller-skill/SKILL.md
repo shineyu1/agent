@@ -1,46 +1,42 @@
 ---
 name: agent-service-layer-provider-skill
-description: Use when guiding service providers through connecting an existing API or OpenAPI document, setting per-call pricing, and publishing an x402-compatible service for agents.
+description: Use when guiding service providers through connecting an existing API or OpenAPI document, signing in with a wallet, setting per-call pricing, and publishing an x402-compatible service for agents.
 ---
 
-# Agent Service Layer Provider Skill
+# Agent Service x402 Provider Skill
 
 This is the provider-facing skill for Agent Service x402.
 
 Its job is to help a service provider:
 1. connect an existing API or OpenAPI document
-2. set per-call pricing and payout wallet
-3. choose hosted or relay delivery
-4. create an x402-compatible service that agents can use
+2. sign in as a seller with a wallet signature
+3. create or update services through the Agent Service x402 backend
+4. require a second signature for high-risk provider actions
 
 ## Dependencies
 
 Install this skill together with OKX's OnchainOS skills:
 
 ```bash
-npx skills add shineyu1/agent --skill agent-service-layer-provider-skill
-npx skills add okx/onchainos-skills
+npx skills add shineyu1/agent --agent openclaw --skill agent-service-layer-provider-skill -y
+npx skills add okx/onchainos-skills --agent openclaw --skill '*' -y
 ```
 
 Key reused capability:
 - `okx-agentic-wallet`
-  - email login
-  - wallet creation
+  - wallet access
   - address lookup
-
-Provider setup reuses OKX wallet identity. The main x402 payment signing flow happens on the user side, not in the provider-side onboarding flow.
+  - message signing
 
 ## Principles
 
-- Use `服务商`, never `商家`.
 - Do not stop at "installed successfully".
 - After the skill is available, immediately offer the next provider action.
-- Require a valid seller identity before any create or update action.
-- Connect the API first, explain less.
 - Ask one question at a time.
-- Assume the provider wants to keep API ownership, pricing power, and distribution control.
-- Confirm once before creation.
-- After creation, immediately offer the next useful action.
+- Prefer real platform actions over draft summaries when enough inputs are available.
+- Treat OpenClaw as the primary execution environment.
+- Do not make the user open a claim page for the main provider flow.
+- For Agent Service x402, seller auth should default to wallet-signature login plus bearer token.
 
 ## Platform Defaults
 
@@ -49,37 +45,65 @@ When running provider onboarding for Agent Service x402, assume the platform bac
 Use these defaults unless the user explicitly gives a different base URL:
 
 - platform base URL: `https://agentx402.online`
-- create seller bridge session: `POST /api/auth/bridge/start`
-- claim seller session: `POST /api/auth/bridge/claim`
+- create seller login challenge: `POST /api/auth/agent/challenge`
+- verify seller login signature: `POST /api/auth/agent/verify`
+- check auth state: `GET /api/auth/session`
 - create provider service: `POST /api/providers/services`
 - list provider services: `GET /api/providers/services`
+- read provider service: `GET /api/providers/services/{slug}`
+- update provider service: `PATCH /api/providers/services/{slug}`
+- create high-risk action challenge: `POST /api/providers/actions/challenge`
 - check service detail: `GET /api/services/{slug}/detail`
 - check install info: `GET /api/services/{slug}/install`
 
 Do not ask the user to provide the platform's provider API endpoint, auth scheme, or request format unless the known platform endpoints are unreachable or return a non-supported response.
 
+## Auth Model
+
+### Normal provider flow
+
+1. Check whether a seller bearer token already exists.
+2. If no token exists, request a seller login challenge from the platform.
+3. Sign the challenge message with the OKX wallet.
+4. Verify the signature and store the returned bearer token.
+5. Use that bearer token for normal provider actions.
+
+### High-risk provider actions
+
+These actions require an additional signature:
+- publish service
+- update price
+- update payout wallet
+- change visibility
+
+For those actions:
+1. request a provider action challenge
+2. sign the challenge with the wallet
+3. verify the signature
+4. send the returned `x-seller-action-proof` header with the update
+
 ## Execution Rules
 
 - If the user is onboarding a service for Agent Service x402, prefer the canonical backend above.
-- Before creating or updating a service, check whether a seller session already exists.
-- If no seller session exists, start the seller bridge flow first and complete identity binding before calling `POST /api/providers/services`.
+- Before creating or updating a service, check whether a seller bearer token already exists.
+- If no seller token exists, start the wallet-signature login flow first.
 - If the user already provided enough business fields to create a service, proceed to real creation instead of stopping at a draft summary.
 - Only ask for missing service fields such as upstream URL, service name, description, price, currency, payout wallet, or delivery mode.
 - Do not ask the user to design the provider backend when the Agent Service x402 backend is already available.
 - Do not behave as if service creation is public or anonymous.
-- Fall back to "draft only" mode only when:
+- Fall back to draft-only mode only when:
   - the platform base URL is unavailable
-  - the bridge session cannot be created
+  - seller login cannot be completed
   - the provider API returns an incompatible response
 
-## Canonical Provider Creation Flow
+## Canonical Provider Flow
 
 Use this real flow for Agent Service x402:
 
-1. Check seller authentication state.
-2. If not authenticated, start `POST /api/auth/bridge/start` for seller identity.
-3. Claim the bridge token at `POST /api/auth/bridge/claim`.
-4. Reuse the returned seller session cookie.
+1. Check seller auth state with the current bearer token if available.
+2. If not authenticated, call `POST /api/auth/agent/challenge`.
+3. Sign the returned message with the OKX wallet.
+4. Verify with `POST /api/auth/agent/verify` and store the bearer token.
 5. Collect provider inputs:
    - upstream API URL or OpenAPI URL
    - service name
@@ -90,23 +114,12 @@ Use this real flow for Agent Service x402:
    - hosted or relay
    - listed or unlisted
 6. Create the service at `POST /api/providers/services`
-7. After creation, surface:
+7. For high-risk changes, obtain `POST /api/providers/actions/challenge`, sign, verify, then send `x-seller-action-proof`
+8. After creation or update, surface:
    - created slug
    - service detail path
    - install path
    - next useful action
-
-## Seller Authentication Rule
-
-Agent Service x402 service creation is not public.
-
-The host must treat service creation as an authenticated seller action:
-
-- no seller session -> no creation
-- no seller session -> no update
-- no seller session -> guide the user through identity binding first
-
-If the host cannot obtain a seller session, it may produce a draft, but it must clearly say creation has not happened yet.
 
 ## Lightweight Create Payload
 
@@ -155,69 +168,67 @@ If the provider chooses relay mode, replace `access` with:
 As soon as the skill is installed or loaded, start with:
 
 ```text
-已安装完成。
+Installed successfully.
 
-下一步我可以直接帮你做服务商接入，建议先从 1 开始：
-1. 接入一个 API
-2. 查看我的服务
-3. 跑一个示例
+Next I can take you straight into provider onboarding:
+1. Connect one API
+2. View my services
+3. Run a minimal example
 
-你可以直接回复：
-- 接入 API
-- 查看我的服务
-- 跑一个示例
+Reply with:
+- Connect API
+- View my services
+- Run an example
 ```
-
-Do not replace this with a passive sentence like "installation complete".
 
 ## Flow A: Connect an API
 
-If the provider chooses `接入 API`, continue with:
+If the provider chooses `Connect API`, continue with:
 
 ```text
-你要接入的是哪一种？
-- 现有 API 地址
-- OpenAPI 文档地址
+What are you connecting first?
+- Existing API URL
+- OpenAPI document URL
 ```
 
 Then ask one question at a time:
 
 ```text
-先把地址发给我。
+Send me the URL first.
 ```
 
 ```text
-这个服务叫什么名字？
+What should this service be called?
 ```
 
 ```text
-请用一句话描述这个服务是做什么的。
+Give me a one-line description of what this service does.
 ```
 
 ```text
-你希望单次收费多少？
+What price do you want per call?
 ```
 
 ```text
-使用哪种稳定币？
+Which currency should I use?
 - USDT
 - USDG
 ```
 
 ```text
-收款钱包地址是什么？
+What payout wallet should this service use?
 ```
 
 ```text
-服务交付方式选哪种？
+Which delivery mode should I use?
 - hosted
 - relay
 ```
 
 ```text
-你希望它现在：
-- 上架到目录
-- 先不公开
+Should I keep this unlisted for now, or publish it after creation?
+- unlisted
+- listed
 ```
 
 ## Confirmation Before Create
@@ -225,17 +236,17 @@ Then ask one question at a time:
 Before creating, summarize:
 
 ```text
-我将按以下配置创建服务：
+I am about to create this service with:
 
-- 名称：...
-- 描述：...
-- 价格：...
-- 币种：...
-- 收款钱包：...
-- 交付方式：...
-- 上架状态：...
+- Name: ...
+- Description: ...
+- Price: ...
+- Currency: ...
+- Payout wallet: ...
+- Delivery mode: ...
+- Visibility: ...
 
-现在开始创建吗？
+Create it now?
 ```
 
 ## Success Message
@@ -243,46 +254,39 @@ Before creating, summarize:
 After successful creation:
 
 ```text
-服务已创建成功。
+The service is created.
 
-你现在可以：
-- 查看服务详情
-- 查看目录展示
-- 继续接入下一个 API
+You can now:
+- View service details
+- Check the directory entry
+- Connect another API
 ```
 
-If the provider asks to view details:
+## View Existing Services
+
+If the provider chooses `View my services`, continue with:
 
 ```text
-我也可以继续带你检查服务详情页、目录展示和可调用地址。
+I am loading the services tied to your seller token.
+
+You can then:
+- inspect one service
+- update metadata
+- prepare a publish action
 ```
 
-## Flow B: View Existing Services
+## Minimal Example
 
-If the provider chooses `查看我的服务`, continue with:
-
-```text
-我先给你看当前已接入的服务列表。
-
-你现在可以：
-- 看某个服务详情
-- 修改价格
-- 修改上架状态
-- 接入新服务
-```
-
-## Flow C: Minimal Example
-
-If the provider chooses `跑一个示例`, continue with:
+If the provider chooses `Run an example`, continue with:
 
 ```text
-我可以先用一个最小示例带你走完整接入：
-- 填一个测试 API
-- 配价格和钱包
-- 创建服务
-- 检查目录和调用入口
+I can walk through a minimal provider example:
+- connect a test API
+- set price and payout wallet
+- create the service
+- inspect its detail and install endpoints
 
-现在开始吗？
+Start now?
 ```
 
 ## Missing Data Handling
@@ -290,32 +294,32 @@ If the provider chooses `跑一个示例`, continue with:
 If payout wallet is missing:
 
 ```text
-还缺收款钱包地址。发给我后我再继续。
+I still need the payout wallet address before I can continue.
 ```
 
 If API/OpenAPI URL is missing:
 
 ```text
-还缺 API 或 OpenAPI 地址。把地址发给我，我再继续。
+I still need the API or OpenAPI URL before I can continue.
 ```
 
 If relay information is missing:
 
 ```text
-你选择了 relay。接下来我需要 relay 的访问地址和签名信息。
+You chose relay mode. I still need the relay URL and signing secret.
 ```
 
 ## Preferred APIs
 
 ```http
-POST /api/auth/bridge/start
-POST /api/auth/bridge/claim
+POST /api/auth/agent/challenge
+POST /api/auth/agent/verify
 GET /api/auth/session
+POST /api/providers/actions/challenge
 POST /api/providers/services
 GET /api/providers/services
 GET /api/providers/services/{slug}
 PATCH /api/providers/services/{slug}
-GET /api/dashboard
 GET /api/services/{slug}/detail
 GET /api/services/{slug}/install
 ```
@@ -324,6 +328,5 @@ GET /api/services/{slug}/install
 
 - Always speak in provider language.
 - After install, always give a 2-3 option next-step menu.
-- Use `服务商` / `服务商接入` / `接入你的 API`.
-- Never fall back to `商家`.
+- Prefer "provider", "provider onboarding", and "connect your API".
 - Treat the provider as the owner of the service.

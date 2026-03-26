@@ -1,13 +1,13 @@
 ---
 name: agent-service-layer-user-skill
-description: Use when guiding end users or agent operators through discovering pay-per-use services, handling x402 payment only when needed, and returning results plus receipts in a simple step-by-step flow.
+description: Use when guiding end users or agent operators through discovering pay-per-use services, triggering x402 payment only when a real 402 appears, and returning results plus receipts.
 ---
 
-# Agent Service Layer User Skill
+# Agent Service x402 User Skill
 
 This is the user-facing skill for Agent Service x402.
 
-Its job is simple:
+Its job is to:
 1. help the user find a suitable service
 2. recommend the next concrete step
 3. trigger wallet login and x402 payment only when a real `HTTP 402` appears
@@ -18,14 +18,13 @@ Its job is simple:
 Install this skill together with OKX's OnchainOS skills:
 
 ```bash
-npx skills add shineyu1/agent --skill agent-service-layer-user-skill
-npx skills add okx/onchainos-skills
+npx skills add shineyu1/agent --agent openclaw --skill agent-service-layer-user-skill -y
+npx skills add okx/onchainos-skills --agent openclaw --skill '*' -y
 ```
 
 Key reused capabilities:
 - `okx-agentic-wallet`
-  - email login
-  - wallet creation
+  - wallet access
   - address lookup
 - `okx-x402-payment`
   - signs standard x402 `HTTP 402` payment payloads
@@ -46,107 +45,81 @@ Key reused capabilities:
 As soon as the skill is installed or loaded, start with:
 
 ```text
-已安装完成。
+Installed successfully.
 
-下一步我可以直接带你继续，建议先从 1 开始：
-1. 浏览可用的 x402 服务
-2. 检查钱包和支付环境
-3. 调用一个服务并处理支付
+Next I can take you straight into x402 usage:
+1. Browse available services
+2. Check wallet and payment readiness
+3. Call a service
 
-你可以直接回复：
-- 浏览服务
-- 检查钱包
-- 调用第一个服务
+Reply with:
+- Browse services
+- Check wallet
+- Call a service
 ```
-
-Do not replace this with a passive sentence like "installation complete".
 
 ## Flow A: Browse Services
 
-If the user chooses `浏览服务`, continue with:
+If the user chooses `Browse services`, continue with:
 
 ```text
-你想先看哪一类？
-- 搜索与研究
-- 链上分析
-- 风险与安全
-- 开发工具
-- 全部看看
+Which category do you want first?
+- Search and research
+- Onchain analysis
+- Risk and safety
+- Dev tools
+- Show everything
 ```
 
 After a category is selected:
 
 ```text
-我先给你看这一类里最值得先试的服务，重点会放在用途、单次价格和最近状态。
+I will show the best fit in that category first, with focus on purpose, price, and recent status.
 
-你现在可以：
-- 看某个服务详情
-- 直接告诉我你想完成什么任务
-```
-
-If the user asks for a specific service:
-
-```text
-这个服务适合你的原因是：
-- ...
-
-你现在可以：
-- 直接调用它
-- 看安装/调用方式
-- 回到服务列表
+You can then:
+- inspect one service
+- describe your task
 ```
 
 ## Flow B: Check Wallet
 
-If the user chooses `检查钱包`, continue with:
+If the user chooses `Check wallet`, continue with:
 
 ```text
-我先帮你检查钱包是否已登录，以及是否具备支付 x402 的条件。
+I will check whether the wallet is ready for x402 payment.
 ```
 
 Then summarize briefly:
 
 ```text
-当前状态：
-- 钱包登录：...
-- 地址：...
-- 是否可以继续支付：...
+Current status:
+- wallet logged in: ...
+- address: ...
+- payment ready: ...
 
-你现在可以：
-- 调用第一个服务
-- 重新登录钱包
-- 返回服务列表
+You can now:
+- call a service
+- re-login wallet
+- go back to services
 ```
 
 ## Flow C: Start a Task
 
-If the user chooses `调用第一个服务` or describes a task, continue with:
+If the user chooses `Call a service` or describes a task, continue with:
 
 ```text
-告诉我你想让 Agent 完成什么任务。
+Tell me what you want the agent to do.
 ```
 
 After the user describes the task:
 
 ```text
-我找到了更适合这个任务的服务。
+I found the best matching service for this task.
 
-推荐顺序：
-- 服务 A：...
-- 服务 B：...
-
-我建议先用服务 A。
-
-你现在可以：
-- 继续调用
-- 看服务详情
-- 换一个服务
-```
-
-If the user continues:
-
-```text
-我将发起这次请求。如果该服务需要支付，我会先向你确认。
+You can now:
+- call it
+- inspect its details
+- choose a different service
 ```
 
 ## Payment Handling
@@ -154,14 +127,15 @@ If the user continues:
 Only when the upstream returns `HTTP 402`, show:
 
 ```text
-这个服务需要按次支付。
+This service requires per-call payment.
 
-本次支付信息：
-- 币种：USDT 或 USDG
-- 金额：...
-- 服务：...
+This payment request includes:
+- asset
+- amount
+- service
 
-继续的话，我会先检查钱包状态并完成授权。现在继续吗？
+If you continue, I will check wallet status and complete the payment flow.
+Continue now?
 ```
 
 ### Wallet Not Logged In
@@ -169,53 +143,35 @@ Only when the upstream returns `HTTP 402`, show:
 If the user confirms but the wallet is not logged in:
 
 ```text
-先登录 OKX 钱包。请输入你的邮箱地址。
-```
-
-After email:
-
-```text
-验证码已发送，请输入验证码。
-```
-
-After verification succeeds:
-
-```text
-登录成功，钱包已就绪。我将继续这次支付。
+Log in to the OKX wallet first.
 ```
 
 ### Payment In Progress
 
 ```text
-正在完成支付签名。签名完成后我会自动重试请求。
+I am signing the x402 payment now. After that I will retry the request automatically.
 ```
 
 ### Success
 
 ```text
-调用成功。
+The call succeeded.
 
-你现在可以：
-- 查看结果
-- 查看回执
-- 再发起一个任务
-```
-
-If the user asks to view the receipt:
-
-```text
-这次调用记录已经保存。你也可以在网页的记录页查看完整回执。
+You can now:
+- inspect the result
+- inspect the receipt
+- run another task
 ```
 
 ### Failure
 
 ```text
-这次调用没有成功完成。
+This call did not complete successfully.
 
-你现在可以：
-- 重试
-- 看失败原因
-- 返回服务列表
+You can now:
+- retry
+- inspect the failure reason
+- go back to services
 ```
 
 ## Preferred APIs
@@ -234,9 +190,9 @@ GET /api/receipts/{txHash}
 - Prefer result first, next action second.
 - After install, always give a 2-3 option next-step menu.
 - Use the same short actions repeatedly:
-  - `浏览服务`
-  - `检查钱包`
-  - `调用第一个服务`
-  - `查看回执`
-  - `查看我的记录`
+  - `Browse services`
+  - `Check wallet`
+  - `Call a service`
+  - `View receipt`
+  - `View my records`
 - Do not mix provider-side language into the user flow.

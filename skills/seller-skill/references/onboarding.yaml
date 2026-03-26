@@ -3,40 +3,42 @@ skill: agent-service-layer-provider-skill
 product: Agent Service x402
 platform_base_url: https://agentx402.online
 requires_seller_session: true
+auth_mode: wallet_signature_bearer
 platform_api_defaults:
-  bridge_start: /api/auth/bridge/start
-  bridge_claim: /api/auth/bridge/claim
+  auth_challenge: /api/auth/agent/challenge
+  auth_verify: /api/auth/agent/verify
   auth_session: /api/auth/session
+  provider_action_challenge: /api/providers/actions/challenge
   create_service: /api/providers/services
   list_services: /api/providers/services
   service_detail: /api/services/{slug}/detail
   service_install: /api/services/{slug}/install
 opening: |
-  已安装完成。
+  Installed successfully.
 
-  下一步我可以直接帮你做服务商接入，建议先从 1 开始：
-  1. 接入一个 API
-  2. 查看我的服务
-  3. 跑一个示例
+  Next I can take you straight into provider onboarding:
+  1. Connect one API
+  2. View my services
+  3. Run a minimal example
 
-  你可以直接回复：
-  - 接入 API
-  - 查看我的服务
-  - 跑一个示例
+  Reply with:
+  - Connect API
+  - View my services
+  - Run an example
 next_actions:
-  - 接入 API
-  - 查看我的服务
-  - 跑一个示例
-default_action: 接入 API
+  - Connect API
+  - View my services
+  - Run an example
+default_action: Connect API
 default_first_question: |
-  你要接入的是哪一种？
-  - 现有 API 地址
-  - OpenAPI 文档地址
+  What are you connecting first?
+  - Existing API URL
+  - OpenAPI document URL
 execution_rules:
   - Assume Agent Service x402 provider APIs already exist at the platform base URL.
-  - Service creation and updates require a valid seller session first.
-  - If no seller session exists, start the seller bridge flow before creating anything.
-  - Do not ask the user to provide the provider API endpoint, auth scheme, or request schema unless the known platform APIs are unreachable.
+  - Seller auth should default to wallet-signature login plus bearer token.
+  - Do not send the user through the browser claim page for the main OpenClaw flow.
+  - High-risk actions require an additional wallet signature.
   - If the user already provided enough business fields, proceed to real creation instead of stopping at a draft.
 fallback_prompt: |
-  使用 agent-service-layer-provider-skill，默认使用 https://agentx402.online 的平台后端，先检查 seller 登录状态；如果还没登录，先完成服务商身份绑定。然后带我开始服务商接入，从接入一个 API 开始。
+  Use agent-service-layer-provider-skill, default to https://agentx402.online, sign in as a seller with a wallet signature, then start provider onboarding by connecting one API.
