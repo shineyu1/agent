@@ -1,0 +1,24 @@
+Use this with an agent/session that has OKX skills available.
+
+Goal:
+- consume a real x402 HTTP 402 payload
+- sign payment proof with OKX x402 payment capability
+- then run scripts/run-user-regression-replay.ps1 with the returned proof
+
+Service:
+- slug: openclaw-runtime-echo
+- endpoint: http://localhost:3000/api/services/openclaw-runtime-echo
+- method: POST
+
+Original request body:
+{"query":"user skill final regression test"}
+
+Quote:
+{"x402Version":1,"scheme":"exact","serviceId":"cmn7nyvxe00018wj9k3et8o5g","serviceSlug":"openclaw-runtime-echo","amount":"0.07","asset":"USDT","network":"eip155:196","payTo":"0x881c6722397bf536edc1b766b10386aab62e4fa9","expiresAt":"2026-03-26T16:17:14.340Z"}
+
+Raw 402 payment payload (base64):
+eyJ4NDAyVmVyc2lvbiI6MSwiZXJyb3IiOiJYNDAyX1BBWU1FTlRfUkVRVUlSRUQiLCJhY2NlcHRzIjpbeyJzY2hlbWUiOiJleGFjdCIsIm5ldHdvcmsiOiJlaXAxNTU6MTk2IiwiYW1vdW50IjoiNzAwMDAiLCJtYXhBbW91bnRSZXF1aXJlZCI6IjcwMDAwIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwicmVzb3VyY2UiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAvYXBpL3NlcnZpY2VzL29wZW5jbGF3LXJ1bnRpbWUtZWNobyIsImRlc2NyaXB0aW9uIjoiUnVudGltZS1jcmVhdGVkIGVjaG8gZW5kcG9pbnQgZm9yIHVzZXIgcmVncmVzc2lvbi4iLCJtaW1lVHlwZSI6ImFwcGxpY2F0aW9uL2pzb24iLCJwYXlUbyI6IjB4ODgxYzY3MjIzOTdiZjUzNmVkYzFiNzY2YjEwMzg2YWFiNjJlNGZhOSIsImFzc2V0IjoiMHg3NzlkZWQwYzllMTAyMjIyNWY4ZTA2MzBiMzVhOWI1NGJlNzEzNzM2Iiwib3V0cHV0U2NoZW1hIjp7fSwiZXh0cmEiOnsic2VydmljZUlkIjoiY21uN255dnhlMDAwMTh3ajlrM2V0OG81ZyIsInNlcnZpY2VTbHVnIjoib3BlbmNsYXctcnVudGltZS1lY2hvIiwiY3VycmVuY3kiOiJVU0RUIn19XX0=
+
+After you get the payment proof, run:
+
+powershell -ExecutionPolicy Bypass -File scripts/run-user-regression-replay.ps1 -PaymentProof '<PASTE_PROOF>'
