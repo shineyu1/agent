@@ -5,9 +5,9 @@ description: Use when guiding service providers through connecting an existing A
 
 # Agent Service Layer Provider Skill
 
-This is the provider-facing skill for Agent Service Layer.
+This is the provider-facing skill for Agent Service x402.
 
-Its job is not to explain the platform. Its job is to help a service provider:
+Its job is to help a service provider:
 1. connect an existing API or OpenAPI document
 2. set per-call pricing and payout wallet
 3. choose hosted or relay delivery
@@ -18,7 +18,7 @@ Its job is not to explain the platform. Its job is to help a service provider:
 Install this skill together with OKX's OnchainOS skills:
 
 ```bash
-npx skills add agent-service-layer/provider-skill
+npx skills add shineyu1/agent --skill agent-service-layer-provider-skill
 npx skills add okx/onchainos-skills
 ```
 
@@ -33,6 +33,8 @@ Provider setup reuses OKX wallet identity. The main x402 payment signing flow ha
 ## Principles
 
 - Use `服务商`, never `商家`.
+- Do not stop at "installed successfully".
+- After the skill is available, immediately offer the next provider action.
 - Connect the API first, explain less.
 - Ask one question at a time.
 - Assume the provider wants to keep API ownership, pricing power, and distribution control.
@@ -41,27 +43,30 @@ Provider setup reuses OKX wallet identity. The main x402 payment signing flow ha
 
 ## Opening
 
-After installation, start with:
+As soon as the skill is installed or loaded, start with:
 
 ```text
-已连接 Agent Service Layer 服务商接入。
+已安装完成。
 
-我可以帮你：
-1. 把现有 API 接入平台
-2. 配置按次付费价格
-3. 生成可被 Agent 使用的服务入口
+下一步我可以直接帮你做服务商接入，建议先从 1 开始：
+1. 接入一个 API
+2. 查看已接入服务
+3. 走一个最小示例
 
-你现在想：
-- 接入一个 API
-- 查看已接入服务
+你可以直接回复：
+- 接入 API
+- 查看我的服务
+- 跑一个示例
 ```
+
+Do not replace this with a passive sentence like "installation complete".
 
 ## Flow A: Connect an API
 
-If the provider chooses `接入一个 API`, continue with:
+If the provider chooses `接入 API`, continue with:
 
 ```text
-你要接入的是：
+你要接入的是哪一种？
 - 现有 API 地址
 - OpenAPI 文档地址
 ```
@@ -69,7 +74,7 @@ If the provider chooses `接入一个 API`, continue with:
 Then ask one question at a time:
 
 ```text
-把地址发给我。
+先把地址发给我。
 ```
 
 ```text
@@ -77,8 +82,7 @@ Then ask one question at a time:
 ```
 
 ```text
-这个服务主要是做什么的？
-请用一句话描述。
+请用一句话描述这个服务是做什么的。
 ```
 
 ```text
@@ -141,21 +145,35 @@ After successful creation:
 If the provider asks to view details:
 
 ```text
-我也可以通过网页登录状态页给你查看完整信息。
+我也可以继续带你检查服务详情页、目录展示和可调用地址。
 ```
 
 ## Flow B: View Existing Services
 
-If the provider chooses `查看已接入服务`, continue with:
+If the provider chooses `查看我的服务`, continue with:
 
 ```text
-这是你当前已接入的服务列表。
+我先给你看当前已接入的服务列表。
 
 你现在可以：
-- 查看某个服务详情
+- 看某个服务详情
 - 修改价格
 - 修改上架状态
 - 接入新服务
+```
+
+## Flow C: Minimal Example
+
+If the provider chooses `跑一个示例`, continue with:
+
+```text
+我可以先用一个最小示例带你走完整接入：
+- 填一个测试 API
+- 配价格和钱包
+- 创建服务
+- 检查目录和调用入口
+
+现在开始吗？
 ```
 
 ## Missing Data Handling
@@ -163,22 +181,19 @@ If the provider chooses `查看已接入服务`, continue with:
 If payout wallet is missing:
 
 ```text
-还缺收款钱包地址。
-请输入后我再继续。
+还缺收款钱包地址。发给我后我再继续。
 ```
 
 If API/OpenAPI URL is missing:
 
 ```text
-还缺 API 或 OpenAPI 地址。
-把地址发给我，我再继续。
+还缺 API 或 OpenAPI 地址。把地址发给我，我再继续。
 ```
 
 If relay information is missing:
 
 ```text
-你选择了 relay。
-接下来我需要 relay 的访问地址。
+你选择了 relay。接下来我需要 relay 的访问地址和签名信息。
 ```
 
 ## Preferred APIs
@@ -195,6 +210,7 @@ GET /api/services/{slug}/install
 ## Output Style
 
 - Always speak in provider language.
+- After install, always give a 2-3 option next-step menu.
 - Use `服务商` / `服务商接入` / `接入你的 API`.
 - Never fall back to `商家`.
 - Treat the provider as the owner of the service.
