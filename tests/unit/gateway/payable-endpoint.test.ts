@@ -85,7 +85,7 @@ describe("/api/services/[slug]", () => {
             address: "0x1111111111111111111111111111111111111111"
           },
           publishing: {
-            visibility: "listed"
+            visibility: "unlisted"
           },
           source: {
             kind: "manual",
@@ -477,7 +477,7 @@ describe("/api/services/[slug]", () => {
             address: "0x2222222222222222222222222222222222222222"
           },
           publishing: {
-            visibility: "listed"
+            visibility: "unlisted"
           },
           source: {
             kind: "manual",
@@ -570,7 +570,7 @@ describe("/api/services/[slug]", () => {
             address: "0x3333333333333333333333333333333333333333"
           },
           publishing: {
-            visibility: "listed"
+            visibility: "unlisted"
           },
           source: {
             kind: "openapi",
@@ -687,7 +687,7 @@ describe("/api/services/[slug]", () => {
             address: "0x4444444444444444444444444444444444444444"
           },
           publishing: {
-            visibility: "listed"
+            visibility: "unlisted"
           },
           source: {
             kind: "manual",
@@ -903,7 +903,7 @@ describe("/api/services/[slug]", () => {
             pricePerCall: 0.05
           },
           payoutWallet: "0x1234567890abcdef1234567890abcdef12345678",
-          visibility: "listed"
+          visibility: "unlisted"
         })
       })
     );

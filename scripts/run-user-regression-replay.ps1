@@ -24,7 +24,11 @@ function Invoke-JsonRequest {
   )
 
   try {
-    $resp = Invoke-WebRequest -UseBasicParsing -Method $Method -Uri $Url -Headers $Headers -Body $Body -ContentType 'application/json' -TimeoutSec 60
+    if ($Method -eq 'GET' -and [string]::IsNullOrEmpty($Body)) {
+      $resp = Invoke-WebRequest -UseBasicParsing -Method $Method -Uri $Url -Headers $Headers -TimeoutSec 60
+    } else {
+      $resp = Invoke-WebRequest -UseBasicParsing -Method $Method -Uri $Url -Headers $Headers -Body $Body -ContentType 'application/json' -TimeoutSec 60
+    }
     return [PSCustomObject]@{
       StatusCode = [int]$resp.StatusCode
       Headers = $resp.Headers
