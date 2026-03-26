@@ -63,15 +63,21 @@ npx skills add okx/onchainos-skills
 
 ### What to Simulate
 
-1. login with OKX smart wallet by email
-2. let the wallet create an address automatically
-3. install the unified user skill
-4. let the agent query services
-5. call one service
+1. install the unified user skill
+2. let the agent start from the user's task instead of leading with a service menu
+3. provide one of these inputs:
+   - a natural-language task
+   - a URL
+   - a curl example
+   - a real `HTTP 402` / payment error
+4. let the agent match a service and call it
+5. confirm that wallet login is not requested before a real `HTTP 402` appears
 6. receive `HTTP 402`
-7. sign the x402 payment with OKX payment capability
-8. replay the request
-9. receive result and receipt
+7. log in with the OKX smart wallet if payment is actually needed
+8. let the wallet create an address automatically if the user has not logged in before
+9. sign the x402 payment with OKX payment capability
+10. replay the request
+11. receive result and receipt
 
 ### Web Entry Points
 
@@ -112,10 +118,13 @@ After payment or call completion, use the session bridge to open:
 
 ### User Checks
 
-- wallet login succeeded
-- address created automatically
-- agent can discover the service
+- install completes and the next step is task-first
+- agent accepts a task, URL, curl example, or real `402` / payment error
+- agent does not ask for wallet login before a real `HTTP 402`
+- agent can still discover or match the right service when needed
 - `402` is returned
+- wallet login succeeds when payment is actually needed
+- address is created automatically if missing
 - payment succeeds
 - result is returned
 - web shows records and receipts
