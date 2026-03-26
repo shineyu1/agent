@@ -72,15 +72,16 @@ describe("HomePage", () => {
     expect(html).toContain('data-testid="home-value-strip"');
     expect(html).toContain('data-testid="home-service-preview"');
     expect(html).toContain("让 Agent 直接调用 x402 服务");
-    expect(html).toContain("装两个 Skill，Agent 就能自动发现、付费、调用所有接入了 x402 的服务。");
     expect(html).toContain("查看可用服务");
     expect(html).toContain("接入我的 API");
+    expect(html).toContain("OpenClaw 下一步");
+    expect(html).toContain("安装后先接用户任务");
     expect(html).toContain("Google Search");
     expect(html).toContain("Onchain Risk Scoring");
     expect(html).toContain("BankOfAI Chat");
     expect(html).toContain("调用前知道价格");
-    expect(html).toContain("结果即拿即用");
-    expect(html).toContain("每笔都有凭证");
+    expect(html).toContain("结果直接可用");
+    expect(html).toContain("每次调用有回执");
   });
 
   it("renders the rebuilt homepage structure in English", () => {
@@ -88,11 +89,12 @@ describe("HomePage", () => {
 
     expect(html).toContain('data-testid="home-service-preview"');
     expect(html).toContain("Let your agent call x402 services");
-    expect(html).toContain("Install two Skills. Your agent discovers, pays, and calls any x402-enabled service automatically.");
+    expect(html).toContain("The panel shows the install commands");
     expect(html).toContain("Browse services");
     expect(html).toContain("List my API");
+    expect(html).toContain("Then continue");
     expect(html).toContain("Price before payment");
     expect(html).toContain("Output ready to use");
-    expect(html).toContain("On-chain receipts");
+    expect(html).toContain("Receipt on every call");
   });
 });

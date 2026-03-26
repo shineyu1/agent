@@ -18,8 +18,8 @@ references/onboarding.yaml
 
 Current files:
 
-- `skills/buyer-skill/references/onboarding.yaml`
-- `skills/seller-skill/references/onboarding.yaml`
+- `skills/agent-service-layer-user-skill/references/onboarding.yaml`
+- `skills/agent-service-layer-provider-skill/references/onboarding.yaml`
 
 ## YAML Fields
 
@@ -43,6 +43,12 @@ Current files:
   - first question to continue the onboarding flow
 - `fallback_prompt`
   - prompt the host can inject or recommend if no automatic onboarding trigger exists
+- Additional extension fields are allowed when a skill needs more machine-readable execution hints, for example:
+  - `platform_base_url`
+  - `platform_api_defaults`
+  - `post_install_first_step`
+  - `install_continuation_mode`
+  - `execution_rules`
 
 ## Host Behavior
 
@@ -78,7 +84,7 @@ If no onboarding.yaml exists, fall back to the Opening section in SKILL.md.
 If the host cannot auto-trigger onboarding, recommend or inject:
 
 ```text
-Use agent-service-layer-user-skill and start by browsing available x402 services.
+Use agent-service-layer-user-skill, ask what the user wants to get done first, and only fall back to browsing available x402 services if the task is still unclear.
 ```
 
 ## Provider-Side Fallback Prompt

@@ -16,30 +16,24 @@ describe("InstallPage", () => {
   it("renders the simplified install page in Chinese", () => {
     const html = renderInstallPage("zh");
 
-    expect(html).toContain("How it works");
-    expect(html).toContain("先装 Skill，再开始用");
-    expect(html).toContain("用户安装");
+    expect(html).toContain("先装 Skill，再继续执行");
     expect(html).toContain(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-user-skill"
+      "npx skills add shineyu1/agent --agent openclaw --skill agent-service-layer-user-skill -y"
     );
-    expect(html).toContain("看服务");
-    expect(html).toContain("看记录");
-    expect(html).toContain("服务商安装");
-    expect(html).toContain("现在只保留 Provider Skill 安装方式");
+    expect(html).toContain("复制内容已经包含“安装后继续使用 user skill 先接任务，只有任务不清楚时再回退浏览服务”的后续提示。");
+    expect(html).toContain("服务商复制后会继续走钱包签名登录和 API 接入");
+    expect(html).toContain('aria-label="复制安装命令"');
   });
 
   it("renders the simplified install page in English", () => {
     const html = renderInstallPage("en");
 
-    expect(html).toContain("How it works");
-    expect(html).toContain("Install the Skill, then start");
-    expect(html).toContain("User install");
+    expect(html).toContain("Install the Skill, then keep going");
     expect(html).toContain(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-user-skill"
+      "npx skills add shineyu1/agent --agent openclaw --skill agent-service-layer-user-skill -y"
     );
-    expect(html).toContain("Browse services");
-    expect(html).toContain("View records");
-    expect(html).toContain("Provider install");
-    expect(html).toContain("Provider onboarding now stays on the Provider Skill path only.");
+    expect(html).toContain("The copied payload already tells OpenClaw to keep going after install");
+    expect(html).toContain("Provider copy now continues into wallet-signature seller login");
+    expect(html).toContain('aria-label="Copy install commands"');
   });
 });
