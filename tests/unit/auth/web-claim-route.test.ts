@@ -9,15 +9,19 @@ const { consumeBridgeSessionMock, createWebSessionTokenMock } = vi.hoisted(() =>
 vi.mock("@/lib/auth/session-bridge", () => ({
   consumeBridgeSession: consumeBridgeSessionMock,
   createWebSessionToken: createWebSessionTokenMock,
+  resolveAppUrl: (path: string) =>
+    new URL(path, `${process.env.APP_BASE_URL ?? "http://localhost:3000"}/`),
   SELLEROS_SESSION_COOKIE: "selleros_session"
 }));
 
 describe("/auth/claim", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.unstubAllEnvs();
   });
 
-  it("claims a bridge token and redirects to the bridged destination", async () => {
+  it("redirects to the public app host instead of the internal request host", async () => {
+    vi.stubEnv("APP_BASE_URL", "https://agentx402.online");
     consumeBridgeSessionMock.mockResolvedValue({
       ok: true,
       bridge: {
@@ -32,25 +36,28 @@ describe("/auth/claim", () => {
     });
 
     const response = await GET(
-      new Request("http://localhost/auth/claim?token=bridge-token")
+      new Request("http://localhost:3000/auth/claim?token=bridge-token")
     );
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost/dashboard");
+    expect(response.headers.get("location")).toBe("https://agentx402.online/dashboard");
     expect(response.headers.get("set-cookie")).toContain("selleros_session=session-token");
   });
 
   it("redirects invalid bridge tokens back to the install page with an error code", async () => {
+    vi.stubEnv("APP_BASE_URL", "https://agentx402.online");
     consumeBridgeSessionMock.mockResolvedValue({
       ok: false,
       message: "Bridge token is invalid or expired"
     });
 
-    const response = await GET(new Request("http://localhost/auth/claim?token=bad-token"));
+    const response = await GET(
+      new Request("http://localhost:3000/auth/claim?token=bad-token")
+    );
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "http://localhost/install?bridge=invalid"
+      "https://agentx402.online/install?bridge=invalid"
     );
   });
 });

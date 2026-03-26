@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   consumeBridgeSession,
   createWebSessionToken,
+  resolveAppUrl,
   SELLEROS_SESSION_COOKIE
 } from "@/lib/auth/session-bridge";
 
@@ -10,12 +11,12 @@ export async function GET(request: Request) {
   const token = searchParams.get("token");
 
   if (!token) {
-    return NextResponse.redirect(new URL("/install?bridge=missing", request.url));
+    return NextResponse.redirect(resolveAppUrl("/install?bridge=missing"));
   }
 
   const claimResult = await consumeBridgeSession(token);
   if (!claimResult.ok) {
-    return NextResponse.redirect(new URL("/install?bridge=invalid", request.url));
+    return NextResponse.redirect(resolveAppUrl("/install?bridge=invalid"));
   }
 
   const session = createWebSessionToken({
@@ -27,9 +28,7 @@ export async function GET(request: Request) {
     txHash: claimResult.bridge.txHash
   });
 
-  const response = NextResponse.redirect(
-    new URL(claimResult.bridge.redirectTo, request.url)
-  );
+  const response = NextResponse.redirect(resolveAppUrl(claimResult.bridge.redirectTo));
   response.cookies.set(SELLEROS_SESSION_COOKIE, session.sessionToken, {
     httpOnly: true,
     sameSite: "lax",

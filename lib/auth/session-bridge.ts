@@ -90,8 +90,12 @@ function sanitizeRedirect(redirectTo?: string) {
   return redirectTo;
 }
 
-function getBaseUrl() {
+export function getBaseUrl() {
   return (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+export function resolveAppUrl(path: string) {
+  return new URL(path, `${getBaseUrl()}/`);
 }
 
 function getBridgeTtlMs() {
