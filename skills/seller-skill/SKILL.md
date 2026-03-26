@@ -35,6 +35,7 @@ Provider setup reuses OKX wallet identity. The main x402 payment signing flow ha
 - Use `服务商`, never `商家`.
 - Do not stop at "installed successfully".
 - After the skill is available, immediately offer the next provider action.
+- Require a valid seller identity before any create or update action.
 - Connect the API first, explain less.
 - Ask one question at a time.
 - Assume the provider wants to keep API ownership, pricing power, and distribution control.
@@ -60,9 +61,12 @@ Do not ask the user to provide the platform's provider API endpoint, auth scheme
 ## Execution Rules
 
 - If the user is onboarding a service for Agent Service x402, prefer the canonical backend above.
+- Before creating or updating a service, check whether a seller session already exists.
+- If no seller session exists, start the seller bridge flow first and complete identity binding before calling `POST /api/providers/services`.
 - If the user already provided enough business fields to create a service, proceed to real creation instead of stopping at a draft summary.
 - Only ask for missing service fields such as upstream URL, service name, description, price, currency, payout wallet, or delivery mode.
 - Do not ask the user to design the provider backend when the Agent Service x402 backend is already available.
+- Do not behave as if service creation is public or anonymous.
 - Fall back to "draft only" mode only when:
   - the platform base URL is unavailable
   - the bridge session cannot be created
@@ -72,7 +76,11 @@ Do not ask the user to provide the platform's provider API endpoint, auth scheme
 
 Use this real flow for Agent Service x402:
 
-1. Collect provider inputs:
+1. Check seller authentication state.
+2. If not authenticated, start `POST /api/auth/bridge/start` for seller identity.
+3. Claim the bridge token at `POST /api/auth/bridge/claim`.
+4. Reuse the returned seller session cookie.
+5. Collect provider inputs:
    - upstream API URL or OpenAPI URL
    - service name
    - one-line description
@@ -81,15 +89,24 @@ Use this real flow for Agent Service x402:
    - payout wallet
    - hosted or relay
    - listed or unlisted
-2. Create a seller bridge session at `POST /api/auth/bridge/start`
-3. Claim the bridge token at `POST /api/auth/bridge/claim`
-4. Reuse the returned seller session cookie
-5. Create the service at `POST /api/providers/services`
-6. After creation, surface:
+6. Create the service at `POST /api/providers/services`
+7. After creation, surface:
    - created slug
    - service detail path
    - install path
    - next useful action
+
+## Seller Authentication Rule
+
+Agent Service x402 service creation is not public.
+
+The host must treat service creation as an authenticated seller action:
+
+- no seller session -> no creation
+- no seller session -> no update
+- no seller session -> guide the user through identity binding first
+
+If the host cannot obtain a seller session, it may produce a draft, but it must clearly say creation has not happened yet.
 
 ## Lightweight Create Payload
 
@@ -293,6 +310,7 @@ If relay information is missing:
 ```http
 POST /api/auth/bridge/start
 POST /api/auth/bridge/claim
+GET /api/auth/session
 POST /api/providers/services
 GET /api/providers/services
 GET /api/providers/services/{slug}

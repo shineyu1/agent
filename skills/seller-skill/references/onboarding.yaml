@@ -2,9 +2,11 @@ role: provider
 skill: agent-service-layer-provider-skill
 product: Agent Service x402
 platform_base_url: https://agentx402.online
+requires_seller_session: true
 platform_api_defaults:
   bridge_start: /api/auth/bridge/start
   bridge_claim: /api/auth/bridge/claim
+  auth_session: /api/auth/session
   create_service: /api/providers/services
   list_services: /api/providers/services
   service_detail: /api/services/{slug}/detail
@@ -32,7 +34,9 @@ default_first_question: |
   - OpenAPI 文档地址
 execution_rules:
   - Assume Agent Service x402 provider APIs already exist at the platform base URL.
+  - Service creation and updates require a valid seller session first.
+  - If no seller session exists, start the seller bridge flow before creating anything.
   - Do not ask the user to provide the provider API endpoint, auth scheme, or request schema unless the known platform APIs are unreachable.
   - If the user already provided enough business fields, proceed to real creation instead of stopping at a draft.
 fallback_prompt: |
-  使用 agent-service-layer-provider-skill，默认使用 https://agentx402.online 的平台后端，带我开始服务商接入。先从接入一个 API 开始。
+  使用 agent-service-layer-provider-skill，默认使用 https://agentx402.online 的平台后端，先检查 seller 登录状态；如果还没登录，先完成服务商身份绑定。然后带我开始服务商接入，从接入一个 API 开始。
