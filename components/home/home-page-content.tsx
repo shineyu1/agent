@@ -130,7 +130,19 @@ export function HomePageContent({
               ))}
             </div>
 
-            <CommandCopyButton commands={copy.hero.commands} copy={copy.copyButton} />
+            <div
+              className="rounded-xl px-4 py-3 text-sm leading-relaxed"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)" }}
+            >
+              <p className="m-0 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+                {copy.hero.followupLabel}
+              </p>
+              <p className="m-0 mt-2" style={{ color: "var(--muted)" }}>
+                {copy.hero.followupBody}
+              </p>
+            </div>
+
+            <CommandCopyButton lines={copy.hero.copyPayload} copy={copy.copyButton} />
           </div>
         </div>
       </section>

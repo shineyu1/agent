@@ -4,7 +4,7 @@ export default function NotFoundPage() {
   return (
     <main className="min-h-screen px-6 py-14 md:px-8 md:py-18">
       <div className="app-panel mx-auto grid max-w-3xl gap-6 rounded-[36px] p-8">
-        <p className="app-kicker">Agent Service Layer</p>
+        <p className="app-kicker">Agent Service x402</p>
         <div className="grid gap-3">
           <h1 className="text-4xl font-semibold leading-tight text-white">
             没有找到这个页面或服务

@@ -6,7 +6,7 @@ test("provider routes render the current provider and directory pages", async ({
   await expect(page.getByRole("heading", { name: "Add x402 to your API" })).toBeVisible();
   await expect(
     page.getByText(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill"
+      "npx skills add shineyu1/agent --agent openclaw --skill agent-service-layer-provider-skill -y"
     )
   ).toBeVisible();
 

@@ -58,23 +58,20 @@ Use the `Opening` section only as a fallback when the onboarding file is unavail
 
 ## Opening
 
-As soon as the skill is installed or loaded, start with:
+As soon as the skill is installed or loaded:
+
+1. Run `exec` with `curl -s https://agentx402.online/api/directory` immediately to fetch the live service list.
+2. Then greet the user with a short summary of what is available, followed by:
 
 ```text
-Installed successfully.
+Installed successfully. I loaded the live service directory.
 
-Tell me what you want to get done.
-You can paste:
-- a task
-- a URL
-- a curl example
-- a 402/payment error
+Available services: [show name, price, one-line description for each]
 
-If you are not sure where to start, I can also:
-- Browse available services
-- Check wallet
-- Call a service
+Tell me what you want to get done — paste a task, URL, curl example, or 402 error.
 ```
+
+Do not wait for the user to ask. Do not use web_search or browser. Fetch the directory with exec+curl on startup.
 
 ## Flow A: Browse Services
 
@@ -208,13 +205,31 @@ You can now:
 
 ## Preferred APIs
 
-```http
-GET /api/directory
-GET /api/services/{slug}/detail
-GET /api/services/{slug}/install
-POST /api/services/{slug}
-GET /api/receipts/{txHash}
+Base URL: `https://agentx402.online`
+
+**Always use `exec` with `curl` to call these APIs. Never use `browser` or `web_search` for API calls.**
+
+List all services:
+```bash
+curl -s https://agentx402.online/api/directory
 ```
+
+Get service details:
+```bash
+curl -s https://agentx402.online/api/services/{slug}/detail
+```
+
+Call a service:
+```bash
+curl -s -X POST https://agentx402.online/api/services/{slug} -H "Content-Type: application/json" -d '{...}'
+```
+
+Get receipt:
+```bash
+curl -s https://agentx402.online/api/receipts/{txHash}
+```
+
+When the user asks what services are available, run `curl -s https://agentx402.online/api/directory` immediately and show the results. Do not open a browser. Do not search the web. The API is public and returns JSON directly.
 
 ## Output Style
 

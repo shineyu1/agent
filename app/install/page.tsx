@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/layout/language-provider";
+import { CommandCopyButton } from "@/components/home/command-copy-button";
 import { installCopy } from "@/lib/content/install-copy";
 
 export default function InstallPage() {
@@ -33,6 +34,10 @@ export default function InstallPage() {
             <div className="install-v2-command-panel">
               <pre className="install-v2-code">{copy.buyer.commands.join("\n")}</pre>
             </div>
+
+            <p className="home-v2-section-description">{copy.buyer.followupLabel}</p>
+            <p className="install-v2-step-body">{copy.buyer.followupBody}</p>
+            <CommandCopyButton lines={copy.buyer.copyPayload} copy={copy.copyButton} />
 
             <div className="home-v2-hero-actions">
               {copy.buyer.actions.map((action) => (
@@ -70,6 +75,10 @@ export default function InstallPage() {
             <div className="install-v2-command-panel">
               <pre className="install-v2-code">{copy.provider.commands.join("\n")}</pre>
             </div>
+
+            <p className="home-v2-section-description">{copy.provider.followupLabel}</p>
+            <p className="install-v2-step-body">{copy.provider.followupBody}</p>
+            <CommandCopyButton lines={copy.provider.copyPayload} copy={copy.copyButton} />
 
             <Link href="/providers/new" className="home-v2-secondary-link">
               {copy.provider.actionLabel}

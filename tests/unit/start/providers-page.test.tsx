@@ -18,14 +18,10 @@ describe("ProvidersPage", () => {
 
     expect(html).toContain("给你的 API 加上 x402");
     expect(html).toContain(
-      "接入之后，你的 API 就能被 Agent 发现，按次调用，自动结算。两条命令，完成接入。"
+      "npx skills add shineyu1/agent --agent openclaw --skill agent-service-layer-provider-skill -y"
     );
-    expect(html).toContain(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill"
-    );
-    expect(html).toContain("安装两个 Skill");
-    expect(html).toContain("声明你的服务");
-    expect(html).toContain("上线，等 Agent 来调用");
+    expect(html).toContain("钱包签名登录");
+    expect(html).toContain("OpenClaw 下一步");
     expect(html).toContain('aria-label="复制安装命令"');
   });
 
@@ -34,14 +30,10 @@ describe("ProvidersPage", () => {
 
     expect(html).toContain("Add x402 to your API");
     expect(html).toContain(
-      "Once live, your API is discoverable by agents, callable on demand, and settled automatically per call. Two commands to get there."
+      "npx skills add shineyu1/agent --agent openclaw --skill agent-service-layer-provider-skill -y"
     );
-    expect(html).toContain(
-      "npx skills add https://github.com/shineyu1/agent/tree/main/skills --skill agent-service-layer-provider-skill"
-    );
-    expect(html).toContain("Install both Skills");
-    expect(html).toContain("Declare your service");
-    expect(html).toContain("Go live. Agents call you.");
+    expect(html).toContain("Sign in with your wallet");
+    expect(html).toContain("Then continue");
     expect(html).toContain('aria-label="Copy install commands"');
   });
 });

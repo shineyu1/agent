@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import { validateSellerActionProof } from "@/lib/auth/agent-session";
+import {
+  getSensitiveCreateActions,
+  hashProviderActionPayload
+} from "@/lib/auth/provider-actions";
 import { readSellerSessionFromRequest } from "@/lib/auth/request-session";
 import {
   createService,
@@ -230,6 +235,26 @@ export async function POST(request: Request) {
   const rawPayload = (await request.json()) as
     | ServiceDefinitionInput
     | LightweightOnboardingPayload;
+  const requiredActions = getSensitiveCreateActions(rawPayload);
+  if (requiredActions.length > 0) {
+    const proofResult = validateSellerActionProof({
+      proofToken: request.headers.get("x-seller-action-proof"),
+      walletAddress: sessionResult.session.walletAddress,
+      requiredActions,
+      requestHash: hashProviderActionPayload(rawPayload)
+    });
+
+    if (!proofResult.ok) {
+      return NextResponse.json(
+        {
+          error: proofResult.message,
+          requiredActions
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   const normalizedPayload = normalizePayload(rawPayload);
   const sessionProviderSlug = sessionResult.session.providerSlug;
 

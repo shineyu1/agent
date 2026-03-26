@@ -37,6 +37,10 @@ Key reused capability:
 - Treat OpenClaw as the primary execution environment.
 - Do not make the user open a claim page for the main provider flow.
 - For Agent Service x402, seller auth should default to wallet-signature login plus bearer token.
+- Extract what the user already provided before asking for more.
+- Ask only for missing fields.
+- Use sensible defaults when the platform already knows them.
+- Speak like you are helping the provider move forward, not like a static form.
 
 ## Platform Defaults
 
@@ -66,7 +70,16 @@ Do not ask the user to provide the platform's provider API endpoint, auth scheme
 2. If no token exists, request a seller login challenge from the platform.
 3. Sign the challenge message with the OKX wallet.
 4. Verify the signature and store the returned bearer token.
-5. Use that bearer token for normal provider actions.
+5. Reuse that bearer token on every normal provider request.
+6. Send `Authorization: Bearer <accessToken>` on:
+   - `GET /api/auth/session`
+   - `GET /api/providers/services`
+   - `POST /api/providers/services`
+   - `GET /api/providers/services/{slug}`
+   - `PATCH /api/providers/services/{slug}`
+   - `POST /api/providers/actions/challenge`
+
+Do not assume the verify step writes a browser cookie for the main OpenClaw flow. The host should treat the returned bearer token as the primary seller session credential unless the platform explicitly returns a compatible seller cookie.
 
 ### High-risk provider actions
 
@@ -87,8 +100,13 @@ For those actions:
 - If the user is onboarding a service for Agent Service x402, prefer the canonical backend above.
 - Before creating or updating a service, check whether a seller bearer token already exists.
 - If no seller token exists, start the wallet-signature login flow first.
+- Do not collect provider creation fields before seller authentication is established unless the host is explicitly storing a draft.
+- Extract known fields from the user's message first, including API URL, method, auth style, curl examples, service name, description, price, currency, payout wallet, delivery mode, and visibility.
 - If the user already provided enough business fields to create a service, proceed to real creation instead of stopping at a draft summary.
-- Only ask for missing service fields such as upstream URL, service name, description, price, currency, payout wallet, or delivery mode.
+- Only ask for missing service fields.
+- When seller auth is already established, treat the current seller wallet as the default payout wallet unless the user explicitly wants a different one.
+- Use sensible defaults when not specified: currency defaults to `USDT`, delivery mode defaults to `hosted`, and visibility defaults to `unlisted` unless the user says otherwise.
+- Reuse the verified bearer token for every follow-up provider request; do not silently drop back to an unauthenticated `auth/session` check.
 - Do not ask the user to design the provider backend when the Agent Service x402 backend is already available.
 - Do not behave as if service creation is public or anonymous.
 - Fall back to draft-only mode only when:
@@ -104,7 +122,8 @@ Use this real flow for Agent Service x402:
 2. If not authenticated, call `POST /api/auth/agent/challenge`.
 3. Sign the returned message with the OKX wallet.
 4. Verify with `POST /api/auth/agent/verify` and store the bearer token.
-5. Collect provider inputs:
+5. Immediately confirm auth by calling `GET /api/auth/session` with `Authorization: Bearer <accessToken>`.
+6. Only after seller auth is confirmed, collect provider inputs:
    - upstream API URL or OpenAPI URL
    - service name
    - one-line description
@@ -113,9 +132,11 @@ Use this real flow for Agent Service x402:
    - payout wallet
    - hosted or relay
    - listed or unlisted
-6. Create the service at `POST /api/providers/services`
-7. For high-risk changes, obtain `POST /api/providers/actions/challenge`, sign, verify, then send `x-seller-action-proof`
-8. After creation or update, surface:
+7. Create the service at `POST /api/providers/services` with the bearer token.
+8. For high-risk changes, obtain `POST /api/providers/actions/challenge`, sign, verify, then send `x-seller-action-proof`.
+9. Use `GET /api/providers/services/{slug}` for provider-side management reads.
+10. Use `GET /api/services/{slug}/detail` and `GET /api/services/{slug}/install` for public-facing detail and install information.
+11. After creation or update, surface:
    - created slug
    - service detail path
    - install path
@@ -123,7 +144,12 @@ Use this real flow for Agent Service x402:
 
 ## Lightweight Create Payload
 
-For hosted/manual onboarding, prefer this payload shape:
+For hosted/manual onboarding, prefer this payload shape.
+
+Notes:
+- `providerId` is optional if the platform derives provider identity from the authenticated seller session.
+- Field names for `accessMode`, `access`, and related auth properties should follow the real provider API schema if it differs from this example.
+- Currency should default to `USDT`, but the host may accept other platform-supported assets such as `USDG` or `USDC` if the backend allows them.
 
 ```json
 {
@@ -163,6 +189,11 @@ If the provider chooses relay mode, replace `access` with:
 }
 ```
 
+## Host Preference
+
+If `references/onboarding.yaml` exists, the host should use it as the primary machine-readable install-to-onboarding entry point.
+Use the `Opening` section only as a fallback when the onboarding file is unavailable.
+
 ## Opening
 
 As soon as the skill is installed or loaded, start with:
@@ -191,45 +222,48 @@ What are you connecting first?
 - OpenAPI document URL
 ```
 
-Then ask one question at a time:
+Before asking follow-up questions:
+- extract any fields the user already provided
+- summarize what is already known
+- ask only for what is still missing
+
+Examples of what should be auto-detected when possible:
+- API URL
+- HTTP method
+- auth style such as bearer token
+- service name
+- one-line description
+- price
+- currency
+- payout wallet
+- delivery mode
+- visibility
+
+If the user already pasted a curl example or request snippet, do not ask again for fields that can be reliably extracted from it.
+
+Preferred collection style:
 
 ```text
-Send me the URL first.
+I already picked up these details:
+- API URL: ...
+- Method: ...
+- Auth: ...
+
+I will use these defaults unless you want to change them:
+- payout wallet: current seller wallet
+- currency: USDT
+- delivery mode: hosted
+- visibility: unlisted
+
+I still need:
+- service name
+- one-line description
+- price per call
 ```
 
-```text
-What should this service be called?
-```
+If only one field is missing, ask only that field.
 
-```text
-Give me a one-line description of what this service does.
-```
-
-```text
-What price do you want per call?
-```
-
-```text
-Which currency should I use?
-- USDT
-- USDG
-```
-
-```text
-What payout wallet should this service use?
-```
-
-```text
-Which delivery mode should I use?
-- hosted
-- relay
-```
-
-```text
-Should I keep this unlisted for now, or publish it after creation?
-- unlisted
-- listed
-```
+If multiple fields are missing, ask for the smallest useful set instead of restarting a full form.
 
 ## Confirmation Before Create
 
@@ -330,3 +364,6 @@ GET /api/services/{slug}/install
 - After install, always give a 2-3 option next-step menu.
 - Prefer "provider", "provider onboarding", and "connect your API".
 - Treat the provider as the owner of the service.
+- Sound like you are actively helping the provider move the setup forward.
+- Prefer short progress summaries such as "I already have..." and "I still need...".
+- Avoid making the provider feel like they are filling out a rigid form.

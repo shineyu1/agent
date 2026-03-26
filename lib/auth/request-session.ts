@@ -2,6 +2,7 @@ import {
   readWebSessionToken,
   SELLEROS_SESSION_COOKIE
 } from "@/lib/auth/session-bridge";
+import { readSellerAgentAccessToken } from "@/lib/auth/agent-session";
 
 type WebSession = NonNullable<ReturnType<typeof readWebSessionToken>>;
 
@@ -37,7 +38,41 @@ export function readRequestWebSession(request: Request): WebSession | null {
   return readWebSessionToken(sessionToken);
 }
 
+function readBearerToken(request: Request) {
+  const authorization = request.headers.get("authorization");
+  if (!authorization) {
+    return null;
+  }
+
+  const [scheme, token] = authorization.split(" ", 2);
+  if (scheme?.toLowerCase() !== "bearer" || !token) {
+    return null;
+  }
+
+  return token.trim();
+}
+
+export function readRequestSellerAgentSession(request: Request) {
+  const token = readBearerToken(request);
+  if (!token) {
+    return null;
+  }
+
+  return readSellerAgentAccessToken(token);
+}
+
 export function readSellerSessionFromRequest(request: Request) {
+  const agentSession = readRequestSellerAgentSession(request);
+  if (agentSession) {
+    return {
+      ok: true as const,
+      session: {
+        ...agentSession,
+        redirectTo: "/providers"
+      }
+    };
+  }
+
   const session = readRequestWebSession(request);
 
   if (!session) {

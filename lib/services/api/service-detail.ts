@@ -58,7 +58,7 @@ export function buildServiceDetailPayload(
       listingState: service.listingState,
       credentialMode: service.credentialMode,
       sourceKind: service.sourceKind,
-      providerName: service.providerName ?? "SellerOS Provider",
+      providerName: service.providerName ?? "Agent Service x402 Provider",
       priceAmount: service.priceAmount,
       priceCurrency: service.priceCurrency ?? "USDT",
       price: formatPrice(service.priceAmount, service.priceCurrency),

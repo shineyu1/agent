@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import { validateSellerActionProof } from "@/lib/auth/agent-session";
+import {
+  getSensitiveUpdateActions,
+  hashProviderActionPayload
+} from "@/lib/auth/provider-actions";
 import { readSellerSessionFromRequest } from "@/lib/auth/request-session";
 import {
   getProviderServiceBySlugForOwner,
@@ -45,6 +50,27 @@ export async function PATCH(request: Request, { params }: ProviderServiceRoutePr
 
   const { slug } = await params;
   const payload = await request.json().catch(() => ({}));
+  const requiredActions = getSensitiveUpdateActions(payload);
+  if (requiredActions.length > 0) {
+    const proofResult = validateSellerActionProof({
+      proofToken: request.headers.get("x-seller-action-proof"),
+      walletAddress: sessionResult.session.walletAddress,
+      serviceSlug: slug,
+      requiredActions,
+      requestHash: hashProviderActionPayload(payload)
+    });
+
+    if (!proofResult.ok) {
+      return NextResponse.json(
+        {
+          error: proofResult.message,
+          requiredActions
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   const result = await updateProviderServiceBySlugForOwner(
     slug,
     sessionResult.session.walletAddress,

@@ -89,6 +89,6 @@ export function createDiscoveryRecordFromStoredService(
     avgLatencyMs: metrics?.avgLatencyMs ?? 0,
     recentPaidCallCount: metrics?.recentPaidCallCount ?? 0,
     rejectedProofCount: metrics?.rejectedProofCount ?? 0,
-    providerName: service.providerName ?? "SellerOS Provider"
+    providerName: service.providerName ?? "Agent Service x402 Provider"
   };
 }

@@ -59,7 +59,7 @@ export function SiteShell({
                 <span className="h-[5px] w-[5px] rounded-[2px] bg-white" />
               </span>
             </span>
-            <span className="text-sm font-semibold tracking-tight text-white">SellerOS</span>
+            <span className="text-sm font-semibold tracking-tight text-white">{copy.productName}</span>
           </Link>
 
           {/* Nav */}

@@ -9,9 +9,9 @@ import {
 } from "@/lib/auth/session-bridge";
 
 export const metadata: Metadata = {
-  title: "Agent Service Layer",
+  title: "Agent Service x402",
   description:
-    "x402 pay-per-use API services for agents, with a separate provider entry for packaging existing APIs into agent-ready services."
+    "Agent Service x402 offers x402 pay-per-use API services for agents, with a separate provider entry for packaging existing APIs into agent-ready services."
 };
 
 export default async function RootLayout({

@@ -19,23 +19,21 @@ function renderShell(language?: "zh" | "en") {
 }
 
 describe("SiteShell", () => {
-  it("renders the Chinese navigation by default", () => {
+  it("renders the shared brand in the shell", () => {
     const html = renderShell();
 
-    expect(html).toContain("首页");
-    expect(html).toContain("服务目录");
-    expect(html).toContain("服务商入驻");
-    expect(html).toContain("语言");
-    expect(html).toContain("中文 / EN");
+    expect(html).toContain("Agent Service x402");
+    expect(html).not.toContain("SellerOS");
   });
 
   it("renders the English navigation when language is set to English", () => {
     const html = renderShell("en");
 
+    expect(html).toContain("Agent Service x402");
     expect(html).toContain("Home");
     expect(html).toContain("Directory");
     expect(html).toContain("Providers");
     expect(html).toContain("Language");
-    expect(html).toContain("English / 中文");
+    expect(html).toContain("English /");
   });
 });

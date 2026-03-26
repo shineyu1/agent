@@ -4,7 +4,7 @@ import React from "react";
 import { useState } from "react";
 
 type CommandCopyButtonProps = {
-  commands: readonly string[];
+  lines: readonly string[];
   copy: {
     idle: string;
     copied: string;
@@ -13,7 +13,7 @@ type CommandCopyButtonProps = {
   };
 };
 
-export function CommandCopyButton({ commands, copy }: CommandCopyButtonProps) {
+export function CommandCopyButton({ lines, copy }: CommandCopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const commitCopiedState = () => {
@@ -22,7 +22,7 @@ export function CommandCopyButton({ commands, copy }: CommandCopyButtonProps) {
   };
 
   const handleCopy = async () => {
-    const payload = commands.join("\n");
+    const payload = lines.join("\n");
 
     try {
       await navigator.clipboard.writeText(payload);

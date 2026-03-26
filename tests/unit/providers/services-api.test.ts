@@ -2,10 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "@/app/api/providers/services/route";
 import { createWebSessionToken, SELLEROS_SESSION_COOKIE } from "@/lib/auth/session-bridge";
 import {
+  createSellerActionProofToken,
+  createSellerAgentAccessToken
+} from "@/lib/auth/agent-session";
+import { hashProviderActionPayload } from "@/lib/auth/provider-actions";
+import {
   getProviderServiceBySlugForOwner,
   resetServiceStore,
   updateProviderServiceBySlugForOwner
 } from "@/lib/services/registry/service-store";
+
+const SELLER_WALLET = "0x1234567890abcdef1234567890abcdef12345678";
 
 const { fsMock, dbMock } = vi.hoisted(() => {
   const fsMock = {
@@ -69,7 +76,7 @@ function buildServiceRecord(overrides: Record<string, unknown> = {}) {
       id: "provider_1",
       name: "Provider One",
       slug: "provider_1",
-      ownerWalletAddress: "0xseller111111111111111111111111111111111111"
+      ownerWalletAddress: SELLER_WALLET
     },
     payoutWallet: {
       id: "payout_1",
@@ -128,10 +135,7 @@ async function setPrismaServiceList(services: ReturnType<typeof buildServiceReco
   }));
 }
 
-function buildSellerCookie(
-  walletAddress = "0xseller111111111111111111111111111111111111",
-  providerSlug = "provider_1"
-) {
+function buildSellerCookie(walletAddress = SELLER_WALLET, providerSlug = "provider_1") {
   const session = createWebSessionToken({
     role: "seller",
     walletAddress,
@@ -142,11 +146,17 @@ function buildSellerCookie(
   return `${SELLEROS_SESSION_COOKIE}=${encodeURIComponent(session.sessionToken)}`;
 }
 
+function buildSellerAuthHeader(walletAddress = SELLER_WALLET) {
+  return `Bearer ${createSellerAgentAccessToken({
+    walletAddress
+  })}`;
+}
+
 beforeEach(async () => {
-    vi.resetAllMocks();
-    vi.unstubAllEnvs();
-    vi.stubEnv("APP_ENCRYPTION_KEY", "test-app-encryption-key");
-    await resetServiceStore();
+  vi.resetAllMocks();
+  vi.unstubAllEnvs();
+  vi.stubEnv("APP_ENCRYPTION_KEY", "test-app-encryption-key");
+  await resetServiceStore();
 });
 
 describe("/api/providers/services", () => {
@@ -170,41 +180,48 @@ describe("/api/providers/services", () => {
     dbMock.provider.findUnique.mockResolvedValue(null);
     dbMock.service.create.mockResolvedValue(service);
 
+    const createPayload = {
+      providerId: "provider_1",
+      serviceName: "Token Intel API",
+      description: "Returns token intelligence snapshots.",
+      category: "market-data",
+      tags: ["token", "intel"],
+      inputSchema: { token: "string" },
+      outputSchema: { score: "number" },
+      priceAmount: "0.2",
+      priceCurrency: "USDT",
+      payoutWallet: {
+        network: "xlayer",
+        address: "0x1111111111111111111111111111111111111111"
+      },
+      publishing: {
+        visibility: "listed"
+      },
+      source: {
+        kind: "manual",
+        method: "POST",
+        upstreamUrl: "https://provider.example.com/intel"
+      },
+      access: {
+        mode: "hosted",
+        authType: "bearer",
+        secretCipher: "ciphertext"
+      }
+    };
+
     const response = await POST(
       new Request("http://localhost/api/providers/services", {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          cookie: buildSellerCookie()
+          cookie: buildSellerCookie(),
+          "x-seller-action-proof": createSellerActionProofToken({
+            walletAddress: SELLER_WALLET,
+            actions: ["publish_service"],
+            requestHash: hashProviderActionPayload(createPayload)
+          })
         },
-        body: JSON.stringify({
-          providerId: "provider_1",
-          serviceName: "Token Intel API",
-          description: "Returns token intelligence snapshots.",
-          category: "market-data",
-          tags: ["token", "intel"],
-          inputSchema: { token: "string" },
-          outputSchema: { score: "number" },
-          priceAmount: "0.2",
-          priceCurrency: "USDT",
-          payoutWallet: {
-            network: "xlayer",
-            address: "0x1111111111111111111111111111111111111111"
-          },
-          publishing: {
-            visibility: "listed"
-          },
-          source: {
-            kind: "manual",
-            method: "POST",
-            upstreamUrl: "https://provider.example.com/intel"
-          },
-          access: {
-            mode: "hosted",
-            authType: "bearer",
-            secretCipher: "ciphertext"
-          }
-        })
+        body: JSON.stringify(createPayload)
       })
     );
 
@@ -216,7 +233,7 @@ describe("/api/providers/services", () => {
     expect(payload.service.priceCurrency).toBe("USDT");
     expect(
       dbMock.provider.create.mock.calls[0]?.[0]?.data?.ownerWalletAddress
-    ).toBe("0xseller111111111111111111111111111111111111");
+    ).toBe(SELLER_WALLET);
     expect(
       dbMock.service.create.mock.calls[0]?.[0]?.data?.provider?.connect?.id
     ).toBe("provider_1_id");
@@ -231,6 +248,164 @@ describe("/api/providers/services", () => {
       dbMock.service.create.mock.calls[0]?.[0]?.data?.upstreamCredential?.create?.secretCipher
     ).not.toBe("ciphertext");
     expect(payload.service.secretCipher).toBeUndefined();
+  });
+
+  it("creates an unlisted service with bearer-token seller auth", async () => {
+    const service = buildServiceRecord({
+      id: "svc_manual_bearer",
+      name: "Token Intel Draft",
+      slug: "token-intel-draft",
+      listingState: "UNLISTED"
+    });
+    await setPrismaServiceList([]);
+    dbMock.provider.findUnique.mockResolvedValue(null);
+    dbMock.service.create.mockResolvedValue(service);
+
+    const createPayload = {
+      providerId: "provider_1",
+      serviceName: "Token Intel Draft",
+      description: "Returns token intelligence snapshots.",
+      category: "market-data",
+      tags: ["token", "intel"],
+      inputSchema: { token: "string" },
+      outputSchema: { score: "number" },
+      priceAmount: "0.2",
+      priceCurrency: "USDT",
+      payoutWallet: {
+        network: "xlayer",
+        address: "0x1111111111111111111111111111111111111111"
+      },
+      publishing: {
+        visibility: "unlisted"
+      },
+      source: {
+        kind: "manual",
+        method: "POST",
+        upstreamUrl: "https://provider.example.com/intel"
+      },
+      access: {
+        mode: "hosted",
+        authType: "bearer",
+        secretCipher: "ciphertext"
+      }
+    };
+
+    const response = await POST(
+      new Request("http://localhost/api/providers/services", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: buildSellerAuthHeader()
+        },
+        body: JSON.stringify(createPayload)
+      })
+    );
+
+    expect(response.status).toBe(201);
+  });
+
+  it("rejects publishing a service without a signed action proof", async () => {
+    const createPayload = {
+      providerId: "provider_1",
+      serviceName: "Token Intel API",
+      description: "Returns token intelligence snapshots.",
+      category: "market-data",
+      tags: ["token", "intel"],
+      inputSchema: { token: "string" },
+      outputSchema: { score: "number" },
+      priceAmount: "0.2",
+      priceCurrency: "USDT",
+      payoutWallet: {
+        network: "xlayer",
+        address: "0x1111111111111111111111111111111111111111"
+      },
+      publishing: {
+        visibility: "listed"
+      },
+      source: {
+        kind: "manual",
+        method: "POST",
+        upstreamUrl: "https://provider.example.com/intel"
+      },
+      access: {
+        mode: "hosted",
+        authType: "bearer",
+        secretCipher: "ciphertext"
+      }
+    };
+
+    const response = await POST(
+      new Request("http://localhost/api/providers/services", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: buildSellerAuthHeader()
+        },
+        body: JSON.stringify(createPayload)
+      })
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(payload.requiredActions).toEqual(["publish_service"]);
+  });
+
+  it("accepts publishing a service when a signed action proof matches the request", async () => {
+    const service = buildServiceRecord({
+      id: "svc_listed_bearer",
+      slug: "token-intel-api",
+      listingState: "LISTED"
+    });
+    await setPrismaServiceList([]);
+    dbMock.provider.findUnique.mockResolvedValue(null);
+    dbMock.service.create.mockResolvedValue(service);
+
+    const createPayload = {
+      providerId: "provider_1",
+      serviceName: "Token Intel API",
+      description: "Returns token intelligence snapshots.",
+      category: "market-data",
+      tags: ["token", "intel"],
+      inputSchema: { token: "string" },
+      outputSchema: { score: "number" },
+      priceAmount: "0.2",
+      priceCurrency: "USDT",
+      payoutWallet: {
+        network: "xlayer",
+        address: "0x1111111111111111111111111111111111111111"
+      },
+      publishing: {
+        visibility: "listed"
+      },
+      source: {
+        kind: "manual",
+        method: "POST",
+        upstreamUrl: "https://provider.example.com/intel"
+      },
+      access: {
+        mode: "hosted",
+        authType: "bearer",
+        secretCipher: "ciphertext"
+      }
+    };
+
+    const response = await POST(
+      new Request("http://localhost/api/providers/services", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: buildSellerAuthHeader(),
+          "x-seller-action-proof": createSellerActionProofToken({
+            walletAddress: SELLER_WALLET,
+            actions: ["publish_service"],
+            requestHash: hashProviderActionPayload(createPayload)
+          })
+        },
+        body: JSON.stringify(createPayload)
+      })
+    );
+
+    expect(response.status).toBe(201);
   });
 
   it("returns validation errors for invalid payloads", async () => {
@@ -255,7 +430,7 @@ describe("/api/providers/services", () => {
             address: "0x1111111111111111111111111111111111111111"
           },
           publishing: {
-            visibility: "listed"
+            visibility: "unlisted"
           },
           source: {
             kind: "manual",
@@ -325,35 +500,42 @@ describe("/api/providers/services", () => {
     await setPrismaServiceList([service]);
     dbMock.service.create.mockResolvedValue(service);
 
+    const lightweightPayload = {
+      providerId: "alpha-data",
+      name: "Aurora Search",
+      summary: "Fast semantic search for agent workflows.",
+      sourceMode: "openapi",
+      source: {
+        type: "openapi",
+        url: "https://example.com/openapi.json",
+        operationId: "searchDocuments"
+      },
+      accessMode: "hosted",
+      access: {
+        authType: "bearer",
+        secret: "sk_live_demo"
+      },
+      pricing: {
+        pricePerCall: 0.05,
+        currency: "USDG"
+      },
+      payoutWallet: "0x1234567890abcdef1234567890abcdef12345678",
+      visibility: "listed"
+    };
+
     const response = await POST(
       new Request("http://localhost/api/providers/services", {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          cookie: buildSellerCookie(undefined, "alpha-data")
+          cookie: buildSellerCookie(undefined, "alpha-data"),
+          "x-seller-action-proof": createSellerActionProofToken({
+            walletAddress: SELLER_WALLET,
+            actions: ["publish_service"],
+            requestHash: hashProviderActionPayload(lightweightPayload)
+          })
         },
-        body: JSON.stringify({
-          providerId: "alpha-data",
-          name: "Aurora Search",
-          summary: "Fast semantic search for agent workflows.",
-          sourceMode: "openapi",
-          source: {
-            type: "openapi",
-            url: "https://example.com/openapi.json",
-            operationId: "searchDocuments"
-          },
-          accessMode: "hosted",
-          access: {
-            authType: "bearer",
-            secret: "sk_live_demo"
-          },
-          pricing: {
-            pricePerCall: 0.05,
-            currency: "USDG"
-          },
-          payoutWallet: "0x1234567890abcdef1234567890abcdef12345678",
-          visibility: "listed"
-        })
+        body: JSON.stringify(lightweightPayload)
       })
     );
 
@@ -369,10 +551,7 @@ describe("/api/providers/services", () => {
   it("returns provider-safe service reads without secrets for the owner wallet", async () => {
     dbMock.service.findFirst.mockResolvedValue(buildServiceRecord());
 
-    const service = await getProviderServiceBySlugForOwner(
-      "token-intel-api",
-      "0xseller111111111111111111111111111111111111"
-    );
+    const service = await getProviderServiceBySlugForOwner("token-intel-api", SELLER_WALLET);
 
     expect(service?.slug).toBe("token-intel-api");
     expect(service?.secretCipher).toBeUndefined();
@@ -386,10 +565,7 @@ describe("/api/providers/services", () => {
       ...data
     }));
 
-    const result = await updateProviderServiceBySlugForOwner(
-      "token-intel-api",
-      "0xseller111111111111111111111111111111111111",
-      {
+    const result = await updateProviderServiceBySlugForOwner("token-intel-api", SELLER_WALLET, {
       name: "Token Intel API v2",
       description: "Updated description.",
       category: "market-data",
@@ -409,8 +585,7 @@ describe("/api/providers/services", () => {
       slug: "hijacked-slug",
       secretCipher: "plaintext-secret",
       signingSecret: "relay-secret"
-      }
-    );
+    });
 
     expect(result.ok).toBe(true);
     const updateArgs = dbMock.service.update.mock.calls[0]?.[0];

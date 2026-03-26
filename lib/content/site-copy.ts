@@ -21,7 +21,7 @@ type SiteCopy = {
 
 export const siteCopy: Record<Language, SiteCopy> = {
   zh: {
-    productName: "SellerOS",
+    productName: "Agent Service x402",
     productTagline: "x402 服务接入层",
     productDescription: "给 API 加一层 x402，让 Agent 按次付费调用。",
     headerChip: "x402",
@@ -39,7 +39,7 @@ export const siteCopy: Record<Language, SiteCopy> = {
     }
   },
   en: {
-    productName: "SellerOS",
+    productName: "Agent Service x402",
     productTagline: "x402 service layer",
     productDescription: "Wrap your API with x402. Agents pay per call.",
     headerChip: "x402",

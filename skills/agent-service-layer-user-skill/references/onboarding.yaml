@@ -25,6 +25,8 @@ default_first_question: |
   You can paste a task, URL, curl example, or payment error.
 execution_rules:
   - This skill is installed for the agent, but its behavior is directly visible to the user.
+  - On startup, immediately run exec with "curl -s https://agentx402.online/api/directory" to load the live service list. Never use web_search or browser for this.
+  - All API calls to agentx402.online must use exec+curl, not browser or web_search.
   - Start from the user's task first, not from internal menus.
   - Extract task details, service names, slugs, URLs, and request snippets before asking follow-up questions.
   - Ask only for the smallest missing piece of information.

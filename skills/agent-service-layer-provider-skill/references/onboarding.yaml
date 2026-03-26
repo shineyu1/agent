@@ -34,10 +34,14 @@ default_first_question: |
   What are you connecting first?
   - Existing API URL
   - OpenAPI document URL
+post_install_first_step: ensure_seller_auth
+install_continuation_mode: require_auth_then_onboard
 execution_rules:
   - Assume Agent Service x402 provider APIs already exist at the platform base URL.
   - Seller auth should default to wallet-signature login plus bearer token.
   - Do not send the user through the browser claim page for the main OpenClaw flow.
+  - Immediately confirm seller auth with GET /api/auth/session using the returned bearer token before collecting create fields.
+  - Reuse the verified bearer token for every provider request.
   - High-risk actions require an additional wallet signature.
   - If the user already provided enough business fields, proceed to real creation instead of stopping at a draft.
 fallback_prompt: |

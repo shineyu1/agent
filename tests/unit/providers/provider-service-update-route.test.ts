@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWebSessionToken, SELLEROS_SESSION_COOKIE } from "@/lib/auth/session-bridge";
+import {
+  createSellerActionProofToken,
+  createSellerAgentAccessToken
+} from "@/lib/auth/agent-session";
+import { hashProviderActionPayload } from "@/lib/auth/provider-actions";
 import { PATCH } from "@/app/api/providers/services/[slug]/route";
+
+const SELLER_WALLET = "0x1234567890abcdef1234567890abcdef12345678";
 
 const { updateProviderServiceBySlugForOwnerMock } = vi.hoisted(() => ({
   updateProviderServiceBySlugForOwnerMock: vi.fn()
@@ -13,12 +20,18 @@ vi.mock("@/lib/services/registry/service-store", () => ({
 function buildSellerCookie() {
   const session = createWebSessionToken({
     role: "seller",
-    walletAddress: "0xseller111111111111111111111111111111111111",
+    walletAddress: SELLER_WALLET,
     redirectTo: "/providers",
     providerSlug: "provider_1"
   });
 
   return `${SELLEROS_SESSION_COOKIE}=${encodeURIComponent(session.sessionToken)}`;
+}
+
+function buildSellerAuthHeader() {
+  return `Bearer ${createSellerAgentAccessToken({
+    walletAddress: SELLER_WALLET
+  })}`;
 }
 
 describe("/api/providers/services/[slug] PATCH", () => {
@@ -121,5 +134,92 @@ describe("/api/providers/services/[slug] PATCH", () => {
 
     expect(response.status).toBe(200);
     expect(payload.service.name).toBe("Token Intel API v2");
+  });
+
+  it("accepts bearer-token seller auth for non-sensitive updates", async () => {
+    updateProviderServiceBySlugForOwnerMock.mockResolvedValue({
+      ok: true,
+      service: {
+        slug: "token-intel-api",
+        name: "Token Intel API v2"
+      }
+    });
+
+    const response = await PATCH(
+      new Request("http://localhost/api/providers/services/token-intel-api", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          authorization: buildSellerAuthHeader()
+        },
+        body: JSON.stringify({
+          name: "Token Intel API v2"
+        })
+      }),
+      {
+        params: Promise.resolve({ slug: "token-intel-api" })
+      }
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("rejects sensitive updates without a signed action proof", async () => {
+    const response = await PATCH(
+      new Request("http://localhost/api/providers/services/token-intel-api", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          authorization: buildSellerAuthHeader()
+        },
+        body: JSON.stringify({
+          priceAmount: "0.25"
+        })
+      }),
+      {
+        params: Promise.resolve({ slug: "token-intel-api" })
+      }
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(payload.requiredActions).toEqual(["update_price"]);
+    expect(updateProviderServiceBySlugForOwnerMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts sensitive updates when a matching signed action proof is present", async () => {
+    updateProviderServiceBySlugForOwnerMock.mockResolvedValue({
+      ok: true,
+      service: {
+        slug: "token-intel-api",
+        priceAmount: "0.25"
+      }
+    });
+
+    const patchPayload = {
+      priceAmount: "0.25"
+    };
+
+    const response = await PATCH(
+      new Request("http://localhost/api/providers/services/token-intel-api", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          authorization: buildSellerAuthHeader(),
+          "x-seller-action-proof": createSellerActionProofToken({
+            walletAddress: SELLER_WALLET,
+            serviceSlug: "token-intel-api",
+            actions: ["update_price"],
+            requestHash: hashProviderActionPayload(patchPayload)
+          })
+        },
+        body: JSON.stringify(patchPayload)
+      }),
+      {
+        params: Promise.resolve({ slug: "token-intel-api" })
+      }
+    );
+
+    expect(response.status).toBe(200);
   });
 });
