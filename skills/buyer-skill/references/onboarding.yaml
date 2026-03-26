@@ -1,0 +1,29 @@
+role: user
+skill: agent-service-layer-user-skill
+product: Agent Service x402
+opening: |
+  已安装完成。
+
+  下一步我可以直接带你继续，建议先从 1 开始：
+  1. 浏览可用的 x402 服务
+  2. 检查钱包和支付环境
+  3. 调用一个服务并处理支付
+
+  你可以直接回复：
+  - 浏览服务
+  - 检查钱包
+  - 调用第一个服务
+next_actions:
+  - 浏览服务
+  - 检查钱包
+  - 调用第一个服务
+default_action: 浏览服务
+default_first_question: |
+  你想先看哪一类？
+  - 搜索与研究
+  - 链上分析
+  - 风险与安全
+  - 开发工具
+  - 全部看看
+fallback_prompt: |
+  使用 agent-service-layer-user-skill，带我开始使用 x402 服务。先从浏览服务开始。
