@@ -1,0 +1,36 @@
+role: user
+skill: agent-service-layer-user-skill
+product: Agent Service x402
+opening: |
+  Installed successfully.
+
+  Tell me what you want to get done.
+  You can paste:
+  - a task
+  - a URL
+  - a curl example
+  - a 402/payment error
+
+  If the task is still unclear, I can also:
+  - Browse available services
+  - Check wallet
+  - Call a service
+next_actions:
+  - Describe your task
+  - Browse available services
+  - Check wallet
+default_action: Describe your task
+default_first_question: |
+  Tell me what you want to get done.
+  You can paste a task, URL, curl example, or payment error.
+execution_rules:
+  - This skill is installed for the agent, but its behavior is directly visible to the user.
+  - Start from the user's task first, not from internal menus.
+  - Extract task details, service names, slugs, URLs, and request snippets before asking follow-up questions.
+  - Ask only for the smallest missing piece of information.
+  - If the user already clearly named a service or task, do not send them back through category browsing.
+  - Match the most likely service for the user when possible instead of making the user reverse-engineer the directory.
+  - Do not ask for wallet login until a real HTTP 402 appears.
+  - If the wallet is already logged in when payment is needed, move straight to payment confirmation.
+fallback_prompt: |
+  Use agent-service-layer-user-skill as the agent's user-side orchestration layer: start from the user's task first, match the right x402 service, and only fall back to browsing services if the task is still unclear.
