@@ -65,4 +65,23 @@ describe("/api/auth/bridge/start", () => {
 
     expect(response.status).toBe(400);
   });
+
+  it("returns 400 for malformed json bodies", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/auth/bridge/start", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: "{"
+      })
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload).toEqual({
+      error: "Invalid bridge payload"
+    });
+    expect(createBridgeSessionMock).not.toHaveBeenCalled();
+  });
 });

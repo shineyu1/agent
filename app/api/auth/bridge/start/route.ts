@@ -4,19 +4,26 @@ import { createBridgeSession, parseBridgeStartInput } from "@/lib/auth/session-b
 
 export async function POST(request: Request) {
   try {
-    const payload = parseBridgeStartInput(await request.json());
+    const rawPayload = await request.json().catch(() => {
+      throw new SyntaxError("Invalid JSON");
+    });
+    const payload = parseBridgeStartInput(rawPayload);
     const bridge = await createBridgeSession(payload);
 
     return NextResponse.json(bridge, { status: 201 });
   } catch (error) {
-    if (error instanceof ZodError) {
+    if (error instanceof SyntaxError || error instanceof ZodError) {
       return NextResponse.json(
         {
           error: "Invalid bridge payload",
-          issues: error.issues.map((issue) => ({
-            path: issue.path.join("."),
-            message: issue.message
-          }))
+          ...(error instanceof ZodError
+            ? {
+                issues: error.issues.map((issue) => ({
+                  path: issue.path.join("."),
+                  message: issue.message
+                }))
+              }
+            : {})
         },
         { status: 400 }
       );
